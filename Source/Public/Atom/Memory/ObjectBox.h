@@ -257,7 +257,7 @@ namespace Atom
         template <typename T>
         auto GetObject() -> T&
         {
-            return _GetObject<T>().mutVal();
+            return _GetObject<T>().getMut();
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -266,7 +266,7 @@ namespace Atom
         template <typename T>
         auto GetObject() const -> const T&
         {
-            return _GetObject<T>().val();
+            return _GetObject<T>().get();
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -374,12 +374,12 @@ namespace Atom
             _object.size = sizeof(T);
             _object.type = &typeid(T);
 
-            _object.dtor = [](MutMemPtr<void> obj) { obj.template as<T>().val().T::~T(); };
+            _object.dtor = [](MutMemPtr<void> obj) { obj.template as<T>().get().T::~T(); };
 
             if constexpr (Copyable)
             {
                 _object.copy = [](MutMemPtr<void> obj, MemPtr<void> other) {
-                    new (obj.unwrap()) T(MemPtr<T>(other).val());
+                    new (obj.unwrap()) T(MemPtr<T>(other).get());
                 };
             }
 
@@ -388,7 +388,7 @@ namespace Atom
                 if constexpr (RMoveConstructible<T>)
                 {
                     _object.move = [](MutMemPtr<void> obj, MutMemPtr<void> other) {
-                        new (obj.unwrap()) T(mov(MutMemPtr<T>(other).mutVal()));
+                        new (obj.unwrap()) T(mov(MutMemPtr<T>(other).getMut()));
                     };
                 }
                 else
