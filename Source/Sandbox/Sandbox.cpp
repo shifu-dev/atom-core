@@ -15,5 +15,7 @@ auto main(int argc, char** args) -> int
 {
     PrintCmdArgs(argc, args);
 
+    SharedPtr<i32> ptr;
+
     return 0;
 }
