@@ -43,9 +43,11 @@ namespace Atom
         class ObjectData
         {
         public:
-            ATOM_CONDITIONAL_FIELD(Copyable, InvokablePtr<void(MutMemPtr<void>, MemPtr<void>)>) copy;
+            ATOM_CONDITIONAL_FIELD(Copyable, InvokablePtr<void(MutMemPtr<void>, MemPtr<void>)>)
+            copy;
 
-            ATOM_CONDITIONAL_FIELD(Movable, InvokablePtr<void(MutMemPtr<void>, MutMemPtr<void>)>) move;
+            ATOM_CONDITIONAL_FIELD(Movable, InvokablePtr<void(MutMemPtr<void>, MutMemPtr<void>)>)
+            move;
 
             InvokablePtr<void(MutMemPtr<void> obj)> dtor;
 
@@ -92,15 +94,18 @@ namespace Atom
         /// ----------------------------------------------------------------------------------------
         /// # Default Constructor
         /// ----------------------------------------------------------------------------------------
-        constexpr ObjectBox():
-            _object(), _heapMem(nullptr), _heapMemSize(0), _allocator()
+        constexpr ObjectBox()
+            : _object()
+            , _heapMem(nullptr)
+            , _heapMemSize(0)
+            , _allocator()
         {}
 
         /// ----------------------------------------------------------------------------------------
         /// # Null Constructor
         /// ----------------------------------------------------------------------------------------
-        constexpr ObjectBox(NullType null):
-            ObjectBox()
+        constexpr ObjectBox(NullType null)
+            : ObjectBox()
         {}
 
         /// ----------------------------------------------------------------------------------------
@@ -114,20 +119,20 @@ namespace Atom
 
         /// ----------------------------------------------------------------------------------------
         /// # Constructor
-        /// 
+        ///
         /// Initializes with object.
         /// ----------------------------------------------------------------------------------------
         template <typename T>
             requires RObject<T>
-        ObjectBox(T&& obj):
-            ObjectBox()
+        ObjectBox(T&& obj)
+            : ObjectBox()
         {
             _InitObject(forward<T>(obj));
         }
 
         /// ----------------------------------------------------------------------------------------
         /// # Assignment
-        /// 
+        ///
         /// Assigns new object.
         /// ----------------------------------------------------------------------------------------
         template <typename T>
@@ -143,8 +148,7 @@ namespace Atom
         /// ----------------------------------------------------------------------------------------
         ObjectBox(const ObjectBox& other)
             requires Copyable
-            :
-            ObjectBox()
+            : ObjectBox()
         {
             _CopyBox(other);
         }
@@ -156,8 +160,8 @@ namespace Atom
             typename TOtherMemAllocator>
             requires Copyable && ROtherBox<Copyable, OtherMovable, OtherAllowNonMovableObject>
         ObjectBox(const ObjectBox<Copyable, OtherMovable, OtherAllowNonMovableObject,
-            OtherStackSize, TOtherMemAllocator>& other):
-            ObjectBox()
+            OtherStackSize, TOtherMemAllocator>& other)
+            : ObjectBox()
         {
             _CopyBox(other);
         }
@@ -190,8 +194,7 @@ namespace Atom
         /// ----------------------------------------------------------------------------------------
         ObjectBox(ObjectBox&& other)
             requires Movable
-            :
-            ObjectBox()
+            : ObjectBox()
         {
             _MoveBox(mov(other));
         }
@@ -203,8 +206,8 @@ namespace Atom
             usize OtherStackSize, typename TOtherMemAllocator>
             requires Movable && ROtherBox<OtherCopyable, OtherMovable, OtherAllowNonMovableObject>
         ObjectBox(ObjectBox<OtherCopyable, OtherMovable, OtherAllowNonMovableObject, OtherStackSize,
-            TOtherMemAllocator>&& other):
-            ObjectBox()
+            TOtherMemAllocator>&& other)
+            : ObjectBox()
         {
             _MoveBox(mov(other));
         }
@@ -638,7 +641,7 @@ namespace Atom
     protected:
         /// ----------------------------------------------------------------------------------------
         /// Stack Memory.
-        /// 
+        ///
         /// # To Do
         /// - Replace with a type to handle storage.
         /// ----------------------------------------------------------------------------------------
