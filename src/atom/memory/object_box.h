@@ -1,397 +1,397 @@
 #pragma once
-#include "Atom/Core.h"
-#include "Atom/Exceptions.h"
-#include "Atom/Invokable/InvokablePtr.h"
-#include "Atom/TTI.h"
+#include "atom/core.h"
+#include "atom/exceptions.h"
+#include "atom/invokable/invokable_ptr.h"
+#include "atom/tti.h"
 
-#include "DefaultMemAllocator.h"
+#include "default_mem_allocator.h"
 
-namespace Atom
+namespace atom
 {
-    namespace Internal
+    namespace internal
     {
         /// ----------------------------------------------------------------------------------------
-        /// `ObjectBoxIdentifier` is used to check if the type is same as or derived from
-        /// `ObjectBox` template.
+        /// `object_box_identifier` is used to check if the type is same as or derived from
+        /// `object_box` template.
         /// ----------------------------------------------------------------------------------------
-        class ObjectBoxIdentifier
+        class object_box_identifier
         {};
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// Stores object inside using type erasure.
+    /// stores object inside using type erasure.
     ///
-    /// # Template Parameters
-    /// - `Copyable`: Should the `ObjectBox` be `CopyConstructible` and `CopyAssignable`.
-    /// - `Movable`: Should the `ObjectBox` be `MoveConstructible` and `MoveAssignable`.
-    /// - `AllowNonMovableObject`: Should the `Object` be `MoveConstructible` when `Movable` is
-    ///     true. `Object` can be allocated on heap if it's not movable.
-    /// - `StackSize`: Size of stack to store object, to avoid heap allocation.
-    /// - `TAlloc`: `MemAllocator` to allocate memory to store object.
+    /// # template parameters
+    /// - `copyable`: should the `object_box` be `copy_constructible` and `copy_assignable`.
+    /// - `movable`: should the `object_box` be `move_constructible` and `move_assignable`.
+    /// - `allow_non_movable_object`: should the `object` be `move_constructible` when `movable` is
+    ///     true. `object` can be allocated on heap if it's not movable.
+    /// - `stack_size`: size of stack to store object, to avoid heap allocation.
+    /// - `allocator_type`: `mem_allocator` to allocate memory to store object.
     /// --------------------------------------------------------------------------------------------
-    template <bool Copyable, bool Movable, bool AllowNonMovableObject, usize StackSize,
-        typename TAlloc = DefaultMemAllocator>
-    class ObjectBox: public Internal::ObjectBoxIdentifier
+    template <bool copyable, bool movable, bool allow_non_movable_object, usize stack_size,
+        typename allocator_type = default_mem_allocator>
+    class object_box: public internal::object_box_identifier
     {
-        template <bool OtherCopyable, bool OtherMovable, bool OtherAllowNonMovableObject,
-            usize OtherStackSize, typename TOtherMemAllocator>
-        friend class ObjectBox;
+        template <bool other_copyable, bool other_movable, bool other_allow_non_movable_object,
+            usize other_stack_size, typename tother_mem_allocator>
+        friend class object_box;
 
         /// --------------------------------------------------------------------------------------------
-        /// Stores data for object. Like, `CopyConstructor`, `MoveConstructor` and `ObjectSize`.
+        /// stores data for object. like, `copy_constructor`, `move_constructor` and `object_size`.
         /// --------------------------------------------------------------------------------------------
-        class ObjectData
+        class object_data
         {
         public:
-            ATOM_CONDITIONAL_FIELD(Copyable, InvokablePtr<void(MutMemPtr<void>, MemPtr<void>)>)
+            ATOM_CONDITIONAL_FIELD(copyable, invokable_ptr<void(mut_mem_ptr<void>, mem_ptr<void>)>)
             copy;
 
-            ATOM_CONDITIONAL_FIELD(Movable, InvokablePtr<void(MutMemPtr<void>, MutMemPtr<void>)>)
+            ATOM_CONDITIONAL_FIELD(movable, invokable_ptr<void(mut_mem_ptr<void>, mut_mem_ptr<void>)>)
             move;
 
-            InvokablePtr<void(MutMemPtr<void> obj)> dtor;
+            invokable_ptr<void(mut_mem_ptr<void> obj)> dtor;
 
             usize size;
-            MutMemPtr<void> obj;
-            const TypeInfo* type;
+            mut_mem_ptr<void> obj;
+            const type_info* type;
         };
 
         /// ----------------------------------------------------------------------------------------
-        /// Requirements for `Object` accepted by this `ObjectBox`.
+        /// requirements for `object` accepted by this `object_box`.
         /// ----------------------------------------------------------------------------------------
-        template <typename T>
-        static constexpr bool RObject = requires {
-            // `ObjectBox` variants are not stored inside `ObjectBox` variants.
-            requires RNotDerivedFrom<T, Internal::ObjectBoxIdentifier>;
+        template <typename type>
+        static constexpr bool robject = requires {
+            // `object_box` variants are not stored inside `object_box` variants.
+            requires rnot_derived_from<type, internal::object_box_identifier>;
 
-            // If Box is `Copyable` then the object should also be {CopyConstructibl``.
-            requires !Copyable || RCopyConstructible<T>;
+            // if box is `copyable` then the object should also be {copy_constructibl``.
+            requires !copyable || rcopy_constructible<type>;
 
-            // If Box is `Movable` then the object should also be `MoveConstructible` unless
-            // `NonMovableObject` is allowed.
-            requires !Movable || (RMoveConstructible<T> || AllowNonMovableObject);
+            // if box is `movable` then the object should also be `move_constructible` unless
+            // `non_movable_object` is allowed.
+            requires !movable || (rmove_constructible<type> || allow_non_movable_object);
         };
 
         /// ----------------------------------------------------------------------------------------
-        /// Requirements for other `ObjectBox` accepted by this `ObjectBox`.
-        /// For example, `CopyConstructor` and `MoveConstructor`.
+        /// requirements for other `object_box` accepted by this `object_box`.
+        /// for example, `copy_constructor` and `move_constructor`.
         /// ----------------------------------------------------------------------------------------
-        template <bool OtherCopyable, bool OtherMovable, bool OtherAllowNonMovableObject>
-        static constexpr bool ROtherBox = requires {
-            // If this {Box} is `Copyable` the {OtherBox} should also be `Copyable`.
-            requires !Copyable || OtherCopyable;
+        template <bool other_copyable, bool other_movable, bool other_allow_non_movable_object>
+        static constexpr bool rother_box = requires {
+            // if this {box} is `copyable` the {other_box} should also be `copyable`.
+            requires !copyable || other_copyable;
 
-            // If this {Box} is `Movable` the {OtherBox} should also be `Movable` unless
-            // `NonMovableObject` is allowed.
-            requires !Movable || (OtherMovable || AllowNonMovableObject);
+            // if this {box} is `movable` the {other_box} should also be `movable` unless
+            // `non_movable_object` is allowed.
+            requires !movable || (other_movable || allow_non_movable_object);
 
-            // If this {Box} does not allow `NonMovableObject` then {OtherBox} should also not
-            // allow {NonMovableObjec``.
-            requires !Movable || (AllowNonMovableObject || !OtherAllowNonMovableObject);
+            // if this {box} does not allow `non_movable_object` then {other_box} should also not
+            // allow {non_movable_objec``.
+            requires !movable || (allow_non_movable_object || !other_allow_non_movable_object);
         };
 
     public:
         /// ----------------------------------------------------------------------------------------
-        /// # Default Constructor
+        /// # default constructor
         /// ----------------------------------------------------------------------------------------
-        constexpr ObjectBox()
+        constexpr object_box()
             : _object()
-            , _heapMem(nullptr)
-            , _heapMemSize(0)
+            , _heap_mem(nullptr)
+            , _heap_mem_size(0)
             , _allocator()
         {}
 
         /// ----------------------------------------------------------------------------------------
-        /// # Null Constructor
+        /// # null constructor
         /// ----------------------------------------------------------------------------------------
-        constexpr ObjectBox(NullType null)
-            : ObjectBox()
+        constexpr object_box(null_type null)
+            : object_box()
         {}
 
         /// ----------------------------------------------------------------------------------------
-        /// # Null Assignment
+        /// # null assignment
         /// ----------------------------------------------------------------------------------------
-        auto operator=(NullType null) -> ObjectBox&
+        auto operator=(null_type null) -> object_box&
         {
-            _DisposeObject();
+            _dispose_object();
             return *this;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Constructor
+        /// # constructor
         ///
-        /// Initializes with object.
+        /// initializes with object.
         /// ----------------------------------------------------------------------------------------
-        template <typename T>
-            requires RObject<T>
-        ObjectBox(T&& obj)
-            : ObjectBox()
+        template <typename type>
+            requires robject<type>
+        object_box(type&& obj)
+            : object_box()
         {
-            _InitObject(forward<T>(obj));
+            _init_object(forward<type>(obj));
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Assignment
+        /// # assignment
         ///
-        /// Assigns new object.
+        /// assigns new object.
         /// ----------------------------------------------------------------------------------------
-        template <typename T>
-            requires RObject<T>
-        auto operator=(T&& object) -> ObjectBox&
+        template <typename type>
+            requires robject<type>
+        auto operator=(type&& object) -> object_box&
         {
-            _SetObject(forward<T>(object));
+            _set_object(forward<type>(object));
             return *this;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Copy Constructor
+        /// # copy constructor
         /// ----------------------------------------------------------------------------------------
-        ObjectBox(const ObjectBox& other)
-            requires Copyable
-            : ObjectBox()
+        object_box(const object_box& other)
+            requires copyable
+            : object_box()
         {
-            _CopyBox(other);
+            _copy_box(other);
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Copy Constructor
+        /// # copy constructor
         /// ----------------------------------------------------------------------------------------
-        template <bool OtherMovable, bool OtherAllowNonMovableObject, usize OtherStackSize,
-            typename TOtherMemAllocator>
-            requires Copyable && ROtherBox<Copyable, OtherMovable, OtherAllowNonMovableObject>
-        ObjectBox(const ObjectBox<Copyable, OtherMovable, OtherAllowNonMovableObject,
-            OtherStackSize, TOtherMemAllocator>& other)
-            : ObjectBox()
+        template <bool other_movable, bool other_allow_non_movable_object, usize other_stack_size,
+            typename tother_mem_allocator>
+            requires copyable && rother_box<copyable, other_movable, other_allow_non_movable_object>
+        object_box(const object_box<copyable, other_movable, other_allow_non_movable_object,
+            other_stack_size, tother_mem_allocator>& other)
+            : object_box()
         {
-            _CopyBox(other);
+            _copy_box(other);
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Copy Assignment
+        /// # copy assignment
         /// ----------------------------------------------------------------------------------------
-        auto operator=(const ObjectBox& other) -> ObjectBox&
-            requires Copyable
+        auto operator=(const object_box& other) -> object_box&
+            requires copyable
         {
-            _CopyBox(other);
+            _copy_box(other);
             return *this;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Copy Assignment
+        /// # copy assignment
         /// ----------------------------------------------------------------------------------------
-        template <bool OtherMovable, bool OtherAllowNonMovableObject, usize OtherStackSize,
-            typename TOtherMemAllocator>
-            requires Copyable && ROtherBox<Copyable, OtherMovable, OtherAllowNonMovableObject>
-        auto operator=(const ObjectBox<Copyable, OtherMovable, OtherAllowNonMovableObject,
-            OtherStackSize, TOtherMemAllocator>& other) -> ObjectBox&
+        template <bool other_movable, bool other_allow_non_movable_object, usize other_stack_size,
+            typename tother_mem_allocator>
+            requires copyable && rother_box<copyable, other_movable, other_allow_non_movable_object>
+        auto operator=(const object_box<copyable, other_movable, other_allow_non_movable_object,
+            other_stack_size, tother_mem_allocator>& other) -> object_box&
         {
-            _CopyBox(other);
+            _copy_box(other);
             return *this;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Move Constructor
+        /// # move constructor
         /// ----------------------------------------------------------------------------------------
-        ObjectBox(ObjectBox&& other)
-            requires Movable
-            : ObjectBox()
+        object_box(object_box&& other)
+            requires movable
+            : object_box()
         {
-            _MoveBox(mov(other));
+            _move_box(mov(other));
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Move Constructor
+        /// # move constructor
         /// ----------------------------------------------------------------------------------------
-        template <bool OtherCopyable, bool OtherMovable, bool OtherAllowNonMovableObject,
-            usize OtherStackSize, typename TOtherMemAllocator>
-            requires Movable && ROtherBox<OtherCopyable, OtherMovable, OtherAllowNonMovableObject>
-        ObjectBox(ObjectBox<OtherCopyable, OtherMovable, OtherAllowNonMovableObject, OtherStackSize,
-            TOtherMemAllocator>&& other)
-            : ObjectBox()
+        template <bool other_copyable, bool other_movable, bool other_allow_non_movable_object,
+            usize other_stack_size, typename tother_mem_allocator>
+            requires movable && rother_box<other_copyable, other_movable, other_allow_non_movable_object>
+        object_box(object_box<other_copyable, other_movable, other_allow_non_movable_object, other_stack_size,
+            tother_mem_allocator>&& other)
+            : object_box()
         {
-            _MoveBox(mov(other));
+            _move_box(mov(other));
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Move Assignment
+        /// # move assignment
         /// ----------------------------------------------------------------------------------------
-        auto operator=(ObjectBox&& other) -> ObjectBox&
-            requires Movable
+        auto operator=(object_box&& other) -> object_box&
+            requires movable
         {
-            _MoveBox(mov(other));
+            _move_box(mov(other));
             return *this;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Move Assignment
+        /// # move assignment
         /// ----------------------------------------------------------------------------------------
-        template <bool OtherCopyable, bool OtherMovable, bool OtherAllowNonMovableObject,
-            usize OtherStackSize, typename TOtherMemAllocator>
-            requires Movable && ROtherBox<OtherCopyable, OtherMovable, OtherAllowNonMovableObject>
-        auto operator=(ObjectBox<OtherCopyable, OtherMovable, OtherAllowNonMovableObject,
-            OtherStackSize, TOtherMemAllocator>&& other) -> ObjectBox&
+        template <bool other_copyable, bool other_movable, bool other_allow_non_movable_object,
+            usize other_stack_size, typename tother_mem_allocator>
+            requires movable && rother_box<other_copyable, other_movable, other_allow_non_movable_object>
+        auto operator=(object_box<other_copyable, other_movable, other_allow_non_movable_object,
+            other_stack_size, tother_mem_allocator>&& other) -> object_box&
         {
-            _MoveBox(mov(other));
+            _move_box(mov(other));
             return *this;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Destructor
+        /// # destructor
         /// ----------------------------------------------------------------------------------------
-        ~ObjectBox()
+        ~object_box()
         {
-            _DisposeBox();
+            _dispose_box();
         }
 
     public:
         /// ----------------------------------------------------------------------------------------
-        /// Sets the new object.
+        /// sets the new object.
         /// ----------------------------------------------------------------------------------------
-        template <typename T>
-            requires RObject<T>
-        auto SetObject(T&& obj)
+        template <typename type>
+            requires robject<type>
+        auto set_object(type&& obj)
         {
-            _SetObject(forward<T>(obj));
+            _set_object(forward<type>(obj));
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// Get the object.
+        /// get the object.
         /// ----------------------------------------------------------------------------------------
-        template <typename T>
-        auto GetObject() -> T&
+        template <typename type>
+        auto get_object() -> type&
         {
-            return _GetObject<T>().getMut();
+            return _get_object<type>().get_mut();
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// Get the const object.
+        /// get the const object.
         /// ----------------------------------------------------------------------------------------
-        template <typename T>
-        auto GetObject() const -> const T&
+        template <typename type>
+        auto get_object() const -> const type&
         {
-            return _GetObject<T>().get();
+            return _get_object<type>().get();
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Null Equality Operator
+        /// # null equality operator
         /// ----------------------------------------------------------------------------------------
-        auto eq(NullType null) const -> bool
+        auto eq(null_type null) const -> bool
         {
-            return _HasObject();
+            return _has_object();
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////
-        //// Box Manipulation Functions
+        //// box manipulation functions
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
         /// ----------------------------------------------------------------------------------------
-        /// Copies `other` `ObjectBox` into `this` `ObjectBox`.
+        /// copies `other` `object_box` into `this` `object_box`.
         /// ----------------------------------------------------------------------------------------
-        template <bool OtherMovable, bool OtherAllowNonMovableObject, usize OtherStackSize,
-            typename TOtherMemAllocator>
-            requires Copyable && ROtherBox<Copyable, OtherMovable, OtherAllowNonMovableObject>
-        auto _CopyBox(const ObjectBox<Copyable, OtherMovable, OtherAllowNonMovableObject,
-            OtherStackSize, TOtherMemAllocator>& other)
+        template <bool other_movable, bool other_allow_non_movable_object, usize other_stack_size,
+            typename tother_mem_allocator>
+            requires copyable && rother_box<copyable, other_movable, other_allow_non_movable_object>
+        auto _copy_box(const object_box<copyable, other_movable, other_allow_non_movable_object,
+            other_stack_size, tother_mem_allocator>& other)
         {
-            _CopyObject(other);
+            _copy_object(other);
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// Moves `other` `ObjectBox` into `this` `ObjectBox`.
+        /// moves `other` `object_box` into `this` `object_box`.
         /// ----------------------------------------------------------------------------------------
-        template <bool OtherCopyable, bool OtherMovable, bool OtherAllowNonMovableObject,
-            usize OtherStackSize, typename TOtherMemAllocator>
-            requires Movable && ROtherBox<OtherCopyable, OtherMovable, OtherAllowNonMovableObject>
-        auto _MoveBox(ObjectBox<OtherCopyable, OtherMovable, OtherAllowNonMovableObject,
-            OtherStackSize, TOtherMemAllocator>&& other)
+        template <bool other_copyable, bool other_movable, bool other_allow_non_movable_object,
+            usize other_stack_size, typename tother_mem_allocator>
+            requires movable && rother_box<other_copyable, other_movable, other_allow_non_movable_object>
+        auto _move_box(object_box<other_copyable, other_movable, other_allow_non_movable_object,
+            other_stack_size, tother_mem_allocator>&& other)
         {
-            // When allocator type is different, we cannot handle heap memory.
-            // So we only move the object.
-            if constexpr (!RSameAs<TAlloc, TOtherMemAllocator>)
+            // when allocator type is different, we cannot handle heap memory.
+            // so we only move the object.
+            if constexpr (!rsame_as<allocator_type, tother_mem_allocator>)
             {
-                _MoveObject(other);
-                other._DisposeBox();
+                _move_object(other);
+                other._dispose_box();
                 return;
             }
 
-            _DisposeObject();
+            _dispose_object();
 
-            const usize otherObjSize = other._object.size;
-            const bool otherIsUsingStackMem = other._IsUsingStackMem();
-            if (otherIsUsingStackMem && otherObjSize > StackSize && _heapMemSize >= otherObjSize
-                && other._heapMemSize < otherObjSize)
+            const usize other_obj_size = other._object.size;
+            const bool other_is_using_stack_mem = other._is_using_stack_mem();
+            if (other_is_using_stack_mem && other_obj_size > stack_size && _heap_mem_size >= other_obj_size
+                && other._heap_mem_size < other_obj_size)
             {
-                // We cannot deallocate our memory in the above scenario.
-                other._ReleaseMem();
+                // we cannot deallocate our memory in the above scenario.
+                other._release_mem();
             }
             else
             {
-                _ReleaseMem();
+                _release_mem();
 
-                _heapMem = mov(other._heapMem);
-                _heapMemSize = mov(other._heapMemSize);
+                _heap_mem = mov(other._heap_mem);
+                _heap_mem_size = mov(other._heap_mem_size);
                 _allocator = mov(other._allocator);
             }
 
-            if (otherIsUsingStackMem)
+            if (other_is_using_stack_mem)
             {
-                _MoveObject(mov(other));
+                _move_object(mov(other));
             }
             else
             {
-                _CopyObjectData(other);
+                _copy_object_data(other);
             }
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// Destroy stored object and releases any allocated memory.
+        /// destroy stored object and releases any allocated memory.
         /// ----------------------------------------------------------------------------------------
-        auto _DisposeBox()
+        auto _dispose_box()
         {
-            _DisposeObject();
-            _ReleaseMem();
+            _dispose_object();
+            _release_mem();
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////
-        //// Object Manipulation Functions
+        //// object manipulation functions
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
         /// ----------------------------------------------------------------------------------------
-        /// Stores the object.
+        /// stores the object.
         ///
-        /// @TPARAM T Type of object to store.
+        /// @tparam type type of object to store.
         ///
-        /// @PARAM[IN] obj Object to store.
-        /// @PARAM[IN] forceHeap (default = false) Force store on heap.
+        /// @param[in] obj object to store.
+        /// @param[in] force_heap (default = false) force store on heap.
         ///
-        /// @EXPECTS Previous object is not set.
+        /// @expects previous object is not set.
         /// ----------------------------------------------------------------------------------------
-        template <typename T>
-            requires RObject<T>
-        auto _InitObject(T&& obj, bool forceHeap = false)
+        template <typename type>
+            requires robject<type>
+        auto _init_object(type&& obj, bool force_heap = false)
         {
-            _object.size = sizeof(T);
-            _object.type = &typeid(T);
+            _object.size = sizeof(type);
+            _object.type = &typeid(type);
 
-            _object.dtor = [](MutMemPtr<void> obj) { obj.template as<T>().get().T::~T(); };
+            _object.dtor = [](mut_mem_ptr<void> obj) { obj.template as<type>().get().type::~type(); };
 
-            if constexpr (Copyable)
+            if constexpr (copyable)
             {
-                _object.copy = [](MutMemPtr<void> obj, MemPtr<void> other) {
-                    new (obj.unwrap()) T(MemPtr<T>(other).get());
+                _object.copy = [](mut_mem_ptr<void> obj, mem_ptr<void> other) {
+                    new (obj.unwrap()) type(mem_ptr<type>(other).get());
                 };
             }
 
-            if constexpr (Movable)
+            if constexpr (movable)
             {
-                if constexpr (RMoveConstructible<T>)
+                if constexpr (rmove_constructible<type>)
                 {
-                    _object.move = [](MutMemPtr<void> obj, MutMemPtr<void> other) {
-                        new (obj.unwrap()) T(mov(MutMemPtr<T>(other).getMut()));
+                    _object.move = [](mut_mem_ptr<void> obj, mut_mem_ptr<void> other) {
+                        new (obj.unwrap()) type(mov(mut_mem_ptr<type>(other).get_mut()));
                     };
                 }
                 else
@@ -400,122 +400,122 @@ namespace Atom
                 }
             }
 
-            // If the object is not movable but AllowNonMovableObject is allowed,
+            // if the object is not movable but allow_non_movable_object is allowed,
             // we allocate it on heap to avoid object's move constructor.
-            if constexpr (Movable && AllowNonMovableObject && !RMoveConstructible<T>)
+            if constexpr (movable && allow_non_movable_object && !rmove_constructible<type>)
             {
-                forceHeap = true;
+                force_heap = true;
             }
 
-            _object.obj = _AllocMem(_object.size, forceHeap);
-            new (_object.obj.unwrap()) T(forward<T>(obj));
+            _object.obj = _alloc_mem(_object.size, force_heap);
+            new (_object.obj.unwrap()) type(forward<type>(obj));
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// Destroys previous object if any and stores new object.
+        /// destroys previous object if any and stores new object.
         ///
-        /// @TPARAM T Type of object to store.
+        /// @tparam type type of object to store.
         ///
-        /// @PARAM[IN] obj Object to store.
-        /// @PARAM[IN] forceHeap (default = false) Force store on heap.
+        /// @param[in] obj object to store.
+        /// @param[in] force_heap (default = false) force store on heap.
         /// ----------------------------------------------------------------------------------------
-        template <typename T>
-            requires RObject<T>
-        auto _SetObject(T&& obj, bool forceHeap = false)
+        template <typename type>
+            requires robject<type>
+        auto _set_object(type&& obj, bool force_heap = false)
         {
-            _DisposeObject();
-            _InitObject(forward<T>(obj));
+            _dispose_object();
+            _init_object(forward<type>(obj));
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// Get pointer to stored object.
+        /// get pointer to stored object.
         ///
-        /// @TPARAM T Type as which to get the object.
+        /// @tparam type type as which to get the object.
         /// ----------------------------------------------------------------------------------------
-        template <typename T = void>
-        auto _GetObject() -> MutMemPtr<T>
+        template <typename type = void>
+        auto _get_object() -> mut_mem_ptr<type>
         {
             return _object.obj;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// Get {TypeInfo} or stored object.
+        /// get {type_info} or stored object.
         /// ----------------------------------------------------------------------------------------
-        auto _GetObjectType() const -> const TypeInfo&
+        auto _get_object_type() const -> const type_info&
         {
             return *_object.type;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// Checks if object is not {null}.
+        /// checks if object is not {null}.
         /// ----------------------------------------------------------------------------------------
-        auto _HasObject() const -> bool
+        auto _has_object() const -> bool
         {
             return _object.obj != nullptr;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// Copies the object from `other` `ObjectBox` into `this` `ObjectBox`.
+        /// copies the object from `other` `object_box` into `this` `object_box`.
         ///
-        /// @PARAM[IN] other `ObjectBox` of which to copy object.
-        /// @PARAM[IN] forceHeap (default = false) Force allocate object on heap.
+        /// @param[in] other `object_box` of which to copy object.
+        /// @param[in] force_heap (default = false) force allocate object on heap.
         /// ----------------------------------------------------------------------------------------
-        template <bool OtherMovable, bool OtherAllowNonMovableObject, usize OtherStackSize,
-            typename TOtherMemAllocator>
-            requires Copyable && ROtherBox<Copyable, OtherMovable, OtherAllowNonMovableObject>
-        auto _CopyObject(const ObjectBox<Copyable, OtherMovable, OtherAllowNonMovableObject,
-                             OtherStackSize, TOtherMemAllocator>& other,
-            bool forceHeap = false)
+        template <bool other_movable, bool other_allow_non_movable_object, usize other_stack_size,
+            typename tother_mem_allocator>
+            requires copyable && rother_box<copyable, other_movable, other_allow_non_movable_object>
+        auto _copy_object(const object_box<copyable, other_movable, other_allow_non_movable_object,
+                             other_stack_size, tother_mem_allocator>& other,
+            bool force_heap = false)
         {
-            _DisposeObject();
+            _dispose_object();
 
-            _CopyObjectData(other);
+            _copy_object_data(other);
 
-            if constexpr (Movable)
+            if constexpr (movable)
             {
-                forceHeap = forceHeap || _object.move == nullptr;
+                force_heap = force_heap || _object.move == nullptr;
             }
             else
             {
-                forceHeap = true;
+                force_heap = true;
             }
 
-            _object.obj = _AllocMem(_object.size, forceHeap);
+            _object.obj = _alloc_mem(_object.size, force_heap);
             _object.copy(_object.obj, other._object.obj);
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// Moves the object from `other` `ObjectBox` into `this` `ObjectBox`.
+        /// moves the object from `other` `object_box` into `this` `object_box`.
         ///
-        /// @PARAM[IN] other `ObjectBox` of which to move object.
-        /// @PARAM[IN] forceHeap (default = false) Force allocate object on heap.
+        /// @param[in] other `object_box` of which to move object.
+        /// @param[in] force_heap (default = false) force allocate object on heap.
         ///
-        /// @NOTE This doesn't moves the memory from `other` `ObjectBox`.
+        /// @note this_type doesn't moves the memory from `other` `object_box`.
         /// ----------------------------------------------------------------------------------------
-        template <bool OtherCopyable, bool OtherMovable, bool OtherAllowNoneMovableObject,
-            usize OtherStackSize, typename TOtherMemAllocator>
-            requires Movable && ROtherBox<OtherCopyable, OtherMovable, OtherAllowNoneMovableObject>
-        auto _MoveObject(ObjectBox<OtherCopyable, OtherMovable, OtherAllowNoneMovableObject,
-                             OtherStackSize, TOtherMemAllocator>&& other,
-            bool forceHeap = false)
+        template <bool other_copyable, bool other_movable, bool other_allow_none_movable_object,
+            usize other_stack_size, typename tother_mem_allocator>
+            requires movable && rother_box<other_copyable, other_movable, other_allow_none_movable_object>
+        auto _move_object(object_box<other_copyable, other_movable, other_allow_none_movable_object,
+                             other_stack_size, tother_mem_allocator>&& other,
+            bool force_heap = false)
         {
-            _DisposeObject();
+            _dispose_object();
 
-            _CopyObjectData(other);
-            forceHeap = forceHeap || _object.move == nullptr;
+            _copy_object_data(other);
+            force_heap = force_heap || _object.move == nullptr;
 
-            _object.obj = _AllocMem(_object.size, forceHeap);
+            _object.obj = _alloc_mem(_object.size, force_heap);
             _object.move(_object.obj, other._object.obj);
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// Disposes current object by calling its destructor.
+        /// disposes current object by calling its destructor.
         ///
-        /// @NOTE This does'n deallocates memory.
+        /// @note this_type does'n deallocates memory.
         ///
-        /// @SEE _ReleaseMem().
+        /// @see _release_mem().
         /// ----------------------------------------------------------------------------------------
-        auto _DisposeObject()
+        auto _dispose_object()
         {
             if (_object.obj != nullptr)
             {
@@ -526,25 +526,25 @@ namespace Atom
 
     private:
         /// ----------------------------------------------------------------------------------------
-        /// Copies {ObjectData} from {otherBox}.
+        /// copies {object_data} from {other_box}.
         ///
-        /// @PARAM[IN] otherBox `ObjectBox` of which to copy {ObjectData}.
+        /// @param[in] other_box `object_box` of which to copy {object_data}.
         /// ----------------------------------------------------------------------------------------
-        template <bool OtherCopyable, bool OtherMovable, bool OtherAllowNonMovableObject,
-            usize OtherStackSize, typename TOtherMemAllocator>
-        auto _CopyObjectData(const ObjectBox<OtherCopyable, OtherMovable,
-            OtherAllowNonMovableObject, OtherStackSize, TOtherMemAllocator>& otherBox)
+        template <bool other_copyable, bool other_movable, bool other_allow_non_movable_object,
+            usize other_stack_size, typename tother_mem_allocator>
+        auto _copy_object_data(const object_box<other_copyable, other_movable,
+            other_allow_non_movable_object, other_stack_size, tother_mem_allocator>& other_box)
         {
-            auto& other = otherBox._object;
+            auto& other = other_box._object;
 
             _object.obj = other.obj;
             _object.size = other.size;
             _object.type = other.type;
             _object.dtor = other.dtor;
 
-            if constexpr (Copyable)
+            if constexpr (copyable)
             {
-                if constexpr (Movable)
+                if constexpr (movable)
                 {
                     _object.copy = other.copy;
                 }
@@ -554,9 +554,9 @@ namespace Atom
                 }
             }
 
-            if constexpr (Movable)
+            if constexpr (movable)
             {
-                if constexpr (OtherMovable)
+                if constexpr (other_movable)
                 {
                     _object.move = other.move;
                 }
@@ -569,70 +569,70 @@ namespace Atom
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////
-        //// Memory Manipulation Functions
+        //// memory manipulation functions
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
     protected:
         /// ----------------------------------------------------------------------------------------
-        /// Allocates enough memory of size `size`. Uses stack memory if it is big enough.
+        /// allocates enough memory of size `size`. uses stack memory if it is big enough.
         ///
-        /// @PARAM[IN] size Size of memory to allocate.
-        /// @PARAM[IN] forceHeap If `true`, allocates memory from `TAlloc`.
+        /// @param[in] size size of memory to allocate.
+        /// @param[in] force_heap if `true`, allocates memory from `allocator_type`.
         ///
-        /// @RETURNS Pointer to the allocated memory.
+        /// @returns pointer to the allocated memory.
         /// ----------------------------------------------------------------------------------------
-        auto _AllocMem(usize size, bool forceHeap = false) -> MutMemPtr<void>
+        auto _alloc_mem(usize size, bool force_heap = false) -> mut_mem_ptr<void>
         {
-            if constexpr (StackSize > 0)
+            if constexpr (stack_size > 0)
             {
-                // Check if stack memory is big enough.
-                if (!forceHeap && size <= StackSize)
+                // check if stack memory is big enough.
+                if (!force_heap && size <= stack_size)
                 {
-                    return _stackMem;
+                    return _stack_mem;
                 }
             }
 
-            // If we have previously allocated memory.
-            if (_heapMem != nullptr)
+            // if we have previously allocated memory.
+            if (_heap_mem != nullptr)
             {
-                if (_heapMemSize < size)
+                if (_heap_mem_size < size)
                 {
-                    _heapMem = _allocator.Realloc(_heapMem, size);
-                    _heapMemSize = size;
+                    _heap_mem = _allocator.realloc(_heap_mem, size);
+                    _heap_mem_size = size;
                 }
             }
-            // We need to allocate heap memory.
+            // we need to allocate heap memory.
             else
             {
-                _heapMem = _allocator.Alloc(size);
-                _heapMemSize = size;
+                _heap_mem = _allocator.alloc(size);
+                _heap_mem_size = size;
             }
 
-            return _heapMem;
+            return _heap_mem;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// Deallocates any allocated memory.
+        /// deallocates any allocated memory.
         /// ----------------------------------------------------------------------------------------
-        auto _ReleaseMem()
+        auto _release_mem()
         {
-            if (_heapMem != nullptr)
+            if (_heap_mem != nullptr)
             {
-                _allocator.Dealloc(_heapMem);
-                _heapMem = nullptr;
-                _heapMemSize = 0;
+                _allocator.dealloc(_heap_mem);
+                _heap_mem = nullptr;
+                _heap_mem_size = 0;
             }
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// Is object is stored in stack memory.
+        /// is object is stored in stack memory.
         /// ----------------------------------------------------------------------------------------
-        auto _IsUsingStackMem() const -> bool
+        auto _is_using_stack_mem() const -> bool
         {
-            if constexpr (StackSize > 0)
+            if constexpr (stack_size > 0)
             {
-                return _object.obj.unwrap() == _stackMem;
+                return _object.obj.unwrap() == _stack_mem;
             }
 
             return false;
@@ -640,31 +640,31 @@ namespace Atom
 
     protected:
         /// ----------------------------------------------------------------------------------------
-        /// Stack Memory.
+        /// stack memory.
         ///
-        /// # To Do
-        /// - Replace with a type to handle storage.
+        /// # to do
+        /// - replace with a type to handle storage.
         /// ----------------------------------------------------------------------------------------
-        ATOM_CONDITIONAL_FIELD(StackSize > 0, byte[StackSize.unwrap()]) _stackMem;
+        ATOM_CONDITIONAL_FIELD(stack_size > 0, byte[stack_size.unwrap()]) _stack_mem;
 
         /// ----------------------------------------------------------------------------------------
-        /// Memory Allocator.
+        /// memory allocator.
         /// ----------------------------------------------------------------------------------------
-        TAlloc _allocator;
+        allocator_type _allocator;
 
         /// ----------------------------------------------------------------------------------------
-        /// Heap memory allocated.
+        /// heap memory allocated.
         /// ----------------------------------------------------------------------------------------
-        MutMemPtr<void> _heapMem;
+        mut_mem_ptr<void> _heap_mem;
 
         /// ----------------------------------------------------------------------------------------
-        /// Size of heap memory allocated.
+        /// size of heap memory allocated.
         /// ----------------------------------------------------------------------------------------
-        usize _heapMemSize;
+        usize _heap_mem_size;
 
         /// ----------------------------------------------------------------------------------------
-        /// Object data.
+        /// object data.
         /// ----------------------------------------------------------------------------------------
-        ObjectData _object;
+        object_data _object;
     };
 }

@@ -1,224 +1,223 @@
 #pragma once
-#include "Atom/Exceptions.h"
-#include "Atom/Memory/ObjectBox.h"
-#include "Atom/String.h"
-#include "Atom/TTI.h"
+#include "atom/exceptions.h"
+#include "atom/memory/object_box.h"
+#include "atom/string.h"
+#include "atom/tti.h"
 
-#include "Atom/Invokable/Invokable.h"
+#include "atom/invokable/invokable.h"
 
-namespace Atom
+namespace atom
 {
-    namespace Private
+    class _invokable_box_identifier
+    {};
+
+    template <typename result_type, typename... args_type>
+    class _invoker
     {
-        class InvokableBoxIdentifier
-        {};
-
-        template <typename TResult, typename... TArgs>
-        class Invoker
+    public:
+        template <typename tinvokable>
+        auto set()
+            requires(rinvokable<tinvokable, result_type(args_type...)>)
         {
-        public:
-            template <typename TInvokable>
-            auto Set()
-                requires(RInvokable<TInvokable, TResult(TArgs...)>)
-            {
-                _impl = [](MutMemPtr<void> obj, TResult& result, TArgs&&... args) {
-                    TInvokable& invokable = *static_cast<TInvokable*>(obj.unwrap());
-                    new (&result) TResult(invokable(forward<TArgs>(args)...));
-                };
-            }
+            _impl = [](mut_mem_ptr<void> obj, result_type& result, args_type&&... args) {
+                tinvokable& invokable = *static_cast<tinvokable*>(obj.unwrap());
+                new (&result) result_type(invokable(forward<args_type>(args)...));
+            };
+        }
 
-            auto Invoke(MutMemPtr<void> invokable, TArgs&&... args) -> TResult
-            {
-                TResult result;
-                _impl(invokable, result, forward<TArgs>(args)...);
-
-                return result;
-            }
-
-        protected:
-            void (*_impl)(MutMemPtr<void> invokable, TResult& result, TArgs&&... args);
-        };
-
-        template <typename... TArgs>
-        class Invoker<void, TArgs...>
+        auto invoke(mut_mem_ptr<void> invokable, args_type&&... args) -> result_type
         {
-        public:
-            template <RInvokable<void(TArgs...)> TInvokable>
-            auto Set()
-            {
-                _impl = [](MutMemPtr<void> obj, TArgs&&... args) {
-                    TInvokable& invokable = *reinterpret_cast<TInvokable*>(obj.unwrap());
-                    invokable(forward<TArgs>(args)...);
-                };
-            }
+            result_type result;
+            _impl(invokable, result, forward<args_type>(args)...);
 
-            auto Invoke(MutMemPtr<void> invokable, TArgs&&... args)
-            {
-                _impl(invokable, forward<TArgs>(args)...);
-            }
+            return result;
+        }
 
-        protected:
-            void (*_impl)(MutMemPtr<void> invokable, TArgs&&... args);
-        };
-    }
+    protected:
+        void (*_impl)(mut_mem_ptr<void> invokable, result_type& result, args_type&&... args);
+    };
 
-    /// InvokableBox declaration.
+    template <typename... args_type>
+    class _invoker<void, args_type...>
+    {
+    public:
+        template <rinvokable<void(args_type...)> tinvokable>
+        auto set()
+        {
+            _impl = [](mut_mem_ptr<void> obj, args_type&&... args) {
+                tinvokable& invokable = *reinterpret_cast<tinvokable*>(obj.unwrap());
+                invokable(forward<args_type>(args)...);
+            };
+        }
+
+        auto invoke(mut_mem_ptr<void> invokable, args_type&&... args)
+        {
+            _impl(invokable, forward<args_type>(args)...);
+        }
+
+    protected:
+        void (*_impl)(mut_mem_ptr<void> invokable, args_type&&... args);
+    };
+
+    /// --------------------------------------------------------------------------------------------
+    /// invokable_box declaration.
     /// --------------------------------------------------------------------------------------------
     template <typename>
-    class InvokableBox;
+    class invokable_box;
 
+    /// --------------------------------------------------------------------------------------------
     ///
     /// --------------------------------------------------------------------------------------------
-    template <typename TResult, typename... TArgs>
-    class InvokableBox<TResult(TArgs...)>
-        : public ObjectBox<true, true, true, 50, DefaultMemAllocator>
-        , public Private::InvokableBoxIdentifier
+    template <typename result_type, typename... args_type>
+    class invokable_box<result_type(args_type...)>
+        : public object_box<true, true, true, 50, default_mem_allocator>
+        , public _invokable_box_identifier
     {
     public:
         /// ----------------------------------------------------------------------------------------
-        /// DefaultConstructor.
+        /// default_constructor.
         /// ----------------------------------------------------------------------------------------
-        constexpr InvokableBox() {}
+        constexpr invokable_box() {}
 
         /// ----------------------------------------------------------------------------------------
-        /// NullConstructor.
+        /// null_constructor.
         /// ----------------------------------------------------------------------------------------
-        InvokableBox(NullType null)
-            : ObjectBox(null)
+        invokable_box(null_type null)
+            : object_box(null)
         {}
 
         /// ----------------------------------------------------------------------------------------
-        /// NullAssignmentOperator.
+        /// null_assignment_operator.
         /// ----------------------------------------------------------------------------------------
-        auto operator=(NullType null) -> InvokableBox&
+        auto operator=(null_type null) -> invokable_box&
         {
-            ObjectBox::operator=(null);
+            object_box::operator=(null);
             return *this;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// NullEqualityOperator.
+        /// null_equality_operator.
         /// ----------------------------------------------------------------------------------------
-        auto eq(NullType null) const -> bool
+        auto eq(null_type null) const -> bool
         {
-            return ObjectBox::eq(null);
+            return object_box::eq(null);
         }
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        template <typename TInvokable>
-            requires RInvokable<TInvokable, TResult(TArgs...)>
-        InvokableBox(TInvokable&& invokable)
-            requires(RNotDerivedFrom<TInvokable, Private::InvokableBoxIdentifier>)
-            : ObjectBox(forward<TInvokable>(invokable))
+        template <typename tinvokable>
+            requires rinvokable<tinvokable, result_type(args_type...)>
+        invokable_box(tinvokable&& invokable)
+            requires(rnot_derived_from<tinvokable, _invokable_box_identifier>)
+            : object_box(forward<tinvokable>(invokable))
         {
-            _SetInvoker<TInvokable>();
+            _set_invoker<tinvokable>();
         }
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        template <typename TInvokable>
-            requires RInvokable<TInvokable, TResult(TArgs...)>
-        auto operator=(TInvokable&& invokable) -> InvokableBox& requires(
-            RNotDerivedFrom<TInvokable, Private::InvokableBoxIdentifier>) {
-            ObjectBox::operator=(forward<TInvokable>(invokable));
-            _SetInvoker<TInvokable>();
-            return *this;
-        }
-
-        /// ----------------------------------------------------------------------------------------
-        ///
-        /// ----------------------------------------------------------------------------------------
-        InvokableBox(const InvokableBox& other)
-            : ObjectBox(other)
-        {}
-
-        /// ----------------------------------------------------------------------------------------
-        ///
-        /// ----------------------------------------------------------------------------------------
-        auto operator=(const InvokableBox& other) -> InvokableBox&
-        {
-            ObjectBox::operator=(other);
+        template <typename tinvokable>
+            requires rinvokable<tinvokable, result_type(args_type...)>
+        auto operator=(tinvokable&& invokable) -> invokable_box& requires(
+            rnot_derived_from<tinvokable, _invokable_box_identifier>) {
+            object_box::operator=(forward<tinvokable>(invokable));
+            _set_invoker<tinvokable>();
             return *this;
         }
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        InvokableBox(InvokableBox&& other)
-            : ObjectBox(mov(other))
+        invokable_box(const invokable_box& other)
+            : object_box(other)
         {}
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        auto operator=(InvokableBox&& other) -> InvokableBox&
+        auto operator=(const invokable_box& other) -> invokable_box&
         {
-            ObjectBox::operator=(mov(other));
+            object_box::operator=(other);
             return *this;
         }
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        ~InvokableBox() {}
+        invokable_box(invokable_box&& other)
+            : object_box(mov(other))
+        {}
+
+        /// ----------------------------------------------------------------------------------------
+        ///
+        /// ----------------------------------------------------------------------------------------
+        auto operator=(invokable_box&& other) -> invokable_box&
+        {
+            object_box::operator=(mov(other));
+            return *this;
+        }
+
+        /// ----------------------------------------------------------------------------------------
+        ///
+        /// ----------------------------------------------------------------------------------------
+        ~invokable_box() {}
 
     public:
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        auto Invoke(TArgs&&... args) -> TResult
+        auto invoke(args_type&&... args) -> result_type
         {
-            Contracts::Expects(ObjectBox::_HasObject(), "InvokableTarget is null.");
+            contracts::expects(object_box::_has_object(), "invokable_target is null.");
 
-            return _invoker.Invoke(ObjectBox::_GetObject(), forward<TArgs>(args)...);
+            return _invoker.invoke(object_box::_get_object(), forward<args_type>(args)...);
         }
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        auto operator()(TArgs&&... args) -> TResult
+        auto operator()(args_type&&... args) -> result_type
         {
-            return Invoke(forward<TArgs>(args)...);
+            return invoke(forward<args_type>(args)...);
         }
 
-        template <typename T>
-        auto GetInvokable() -> MutMemPtr<T>
+        template <typename type>
+        auto get_invokable() -> mut_mem_ptr<type>
         {
-            if (typeid(T) != GetInvokableType())
+            if (typeid(type) != get_invokable_type())
                 return nullptr;
 
-            return ObjectBox::_GetObject<T>();
+            return object_box::_get_object<type>();
         }
 
-        auto GetInvokableType() const -> const TypeInfo&
+        auto get_invokable_type() const -> const type_info&
         {
-            return ObjectBox::_GetObjectType();
+            return object_box::_get_object_type();
         }
 
     protected:
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        template <typename TInvokable>
-        auto _SetInvoker()
-            requires(RInvokable<TInvokable, TResult(TArgs...)>)
+        template <typename tinvokable>
+        auto _set_invoker()
+            requires(rinvokable<tinvokable, result_type(args_type...)>)
         {
-            _invoker.template Set<TInvokable>();
+            _invoker.template set<tinvokable>();
         }
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        auto _InvokeInvokable(TArgs&&... args) -> TResult
+        auto _invoke_invokable(args_type&&... args) -> result_type
         {
-            return _invoker.Invoke(forward<TArgs>(args)...);
+            return _invoker.invoke(forward<args_type>(args)...);
         }
 
-        using TInvoker = Private::Invoker<TResult, TArgs...>;
+        using tinvoker = _invoker<result_type, args_type...>;
 
-        TInvoker _invoker;
+        tinvoker _invoker;
     };
 }
