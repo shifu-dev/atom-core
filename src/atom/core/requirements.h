@@ -75,22 +75,10 @@ namespace atom
         std::derived_from<std::remove_cvref_t<tderived>, std::remove_cvref_t<tbase>>;
 
     /// --------------------------------------------------------------------------------------------
-    /// ensures `tderived` not is derived from `tbase`.
-    /// --------------------------------------------------------------------------------------------
-    template <typename tderived, typename tbase>
-    concept rnot_derived_from = (!rderived_from<tderived, tbase>);
-
-    /// --------------------------------------------------------------------------------------------
-    /// ensures `tderived` is same as or derived from `tbase`.
+    /// Ensures `TDerived` is same as or derived from `TBase`.
     /// --------------------------------------------------------------------------------------------
     template <typename tderived, typename tbase>
     concept rsame_or_derived_from = rsame_as<tderived, tbase> || rderived_from<tderived, tbase>;
-
-    /// --------------------------------------------------------------------------------------------
-    /// ensures `tderived` is not same as or derived from `tbase`.
-    /// --------------------------------------------------------------------------------------------
-    template <typename tderived, typename tbase>
-    concept rnot_same_or_derived_from = !rsame_or_derived_from<tderived, tbase>;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////
