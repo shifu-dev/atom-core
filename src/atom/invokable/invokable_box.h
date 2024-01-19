@@ -14,12 +14,12 @@ namespace atom
     class _invoker
     {
     public:
-        template <typename tinvokable>
+        template <typename invokable_type>
         auto set()
-            requires(rinvokable<tinvokable, result_type(targs...)>)
+            requires(rinvokable<invokable_type, result_type(targs...)>)
         {
             _impl = [](mut_mem_ptr<void> obj, result_type& result, targs&&... args) {
-                tinvokable& invokable = *static_cast<tinvokable*>(obj.unwrap());
+                invokable_type& invokable = *static_cast<invokable_type*>(obj.unwrap());
                 new (&result) result_type(invokable(forward<targs>(args)...));
             };
         }
@@ -40,18 +40,18 @@ namespace atom
     class _invoker<void, targs...>
     {
     public:
-        template <rinvokable<void(targs...)> tinvokable>
+        template <rinvokable<void(targs...)> invokable_type>
         auto set()
         {
             _impl = [](void* obj, targs&&... args) {
-                tinvokable& invokable = *reinterpret_cast<tinvokable*>(obj);
-                invokable(fwd(args)...);
+                invokable_type& invokable = *reinterpret_cast<invokable_type*>(obj);
+                invokable(forward<targs>(args)...);
             };
         }
 
         auto invoke(void* invokable, targs&&... args)
         {
-            _impl(invokable, fwd(args)...);
+            _impl(invokable, forward<targs>(args)...);
         }
 
     protected:
@@ -107,25 +107,25 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        template <typename tinvokable>
-            requires rinvokable<tinvokable, result_type(targs...)>
-        invokable_box(tinvokable&& invokable)
-            requires(not rderived_from<tinvokable, _invokable_box_id>)
-            : _box_type(forward<tinvokable>(invokable))
+        template <typename invokable_type>
+        invokable_box(invokable_type&& invokable)
+            requires rinvokable<invokable_type, result_type(targs...)>
+                     and (not rderived_from<invokable_type, _invokable_box_id>)
+            : _box(forward<invokable_type>(invokable))
         {
-            _set_invoker<tinvokable>();
+            _set_invoker<invokable_type>();
         }
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        template <typename tinvokable>
-        invokable_box& operator=(tinvokable&& invokable)
-            requires rinvokable<tinvokable, result_type(targs...)>
-                     and (not rderived_from<tinvokable, _invokable_box_id>)
+        template <typename invokable_type>
+        invokable_box& operator=(invokable_type&& invokable)
+            requires rinvokable<invokable_type, result_type(targs...)>
+                     and (not rderived_from<invokable_type, _invokable_box_id>)
         {
-            _box.operator=(forward<tinvokable>(invokable));
-            _set_invoker<tinvokable>();
+            _box.operator=(forward<invokable_type>(invokable));
+            _set_invoker<invokable_type>();
             return *this;
         }
 
@@ -203,11 +203,11 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        template <typename tinvokable>
+        template <typename invokable_type>
         auto _set_invoker()
-            requires(rinvokable<tinvokable, result_type(targs...)>)
+            requires(rinvokable<invokable_type, result_type(targs...)>)
         {
-            _invoker.template set<tinvokable>();
+            _invoker.template set<invokable_type>();
         }
 
         /// ----------------------------------------------------------------------------------------
