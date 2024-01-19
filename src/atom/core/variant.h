@@ -19,7 +19,7 @@ namespace atom
         using this_type = variant<types...>;
         using _impl_type = _variant_impl<types...>;
 
-        template <typename... tothers>
+        template <typename... other_types>
         friend class variant;
 
     public:
@@ -110,9 +110,9 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         /// # template copy constructor
         /// ----------------------------------------------------------------------------------------
-        template <typename... tothers>
-        constexpr variant(const variant<tothers...>& that)
-            requires(rcopy_constructible_all<tothers...>) and (type_list::template has<tothers...>)
+        template <typename... other_types>
+        constexpr variant(const variant<other_types...>& that)
+            requires(rcopy_constructible_all<other_types...>) and (type_list::template has<other_types...>)
         {
             _impl.construct_value_from_variant(that._impl);
         }
@@ -135,9 +135,9 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         /// # template copy operator
         /// ----------------------------------------------------------------------------------------
-        template <typename... tothers>
-        constexpr variant& operator=(const variant<tothers...>& that)
-            requires(rcopyable_all<tothers...>) and (type_list::template has<tothers...>)
+        template <typename... other_types>
+        constexpr variant& operator=(const variant<other_types...>& that)
+            requires(rcopyable_all<other_types...>) and (type_list::template has<other_types...>)
         {
             _impl.set_value_from_variant(that._impl);
             return *this;
@@ -161,9 +161,9 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         /// # template move constructor
         /// ----------------------------------------------------------------------------------------
-        template <typename... tothers>
-        constexpr variant(variant<tothers...>&& that)
-            requires(rmove_constructible_all<tothers...>) and (type_list::template has<tothers...>)
+        template <typename... other_types>
+        constexpr variant(variant<other_types...>&& that)
+            requires(rmove_constructible_all<other_types...>) and (type_list::template has<other_types...>)
         {
             _impl.construct_value_from_variant(mov(that._impl));
         }
@@ -186,9 +186,9 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         /// # template move operator
         /// ----------------------------------------------------------------------------------------
-        template <typename... tothers>
-        constexpr variant& operator=(variant<tothers...>&& that)
-            requires(rmoveable_all<types...>) and (type_list::template has<tothers...>)
+        template <typename... other_types>
+        constexpr variant& operator=(variant<other_types...>&& that)
+            requires(rmoveable_all<types...>) and (type_list::template has<other_types...>)
         {
             _impl.set_value_from_variant(mov(that._impl));
             return *this;
@@ -279,11 +279,11 @@ namespace atom
         /// # see also
         /// - [`type_at`]
         /// ----------------------------------------------------------------------------------------
-        template <typename type, typename... targs>
-        constexpr auto emplace(targs&&... args)
-            requires(has<type>()) and (rconstructible<type, targs...>)
+        template <typename type, typename... arg_types>
+        constexpr auto emplace(arg_types&&... args)
+            requires(has<type>()) and (rconstructible<type, arg_types...>)
         {
-            _impl.template emplace_value_by_type<type>(forward<targs>(args)...);
+            _impl.template emplace_value_by_type<type>(forward<arg_types>(args)...);
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -292,11 +292,11 @@ namespace atom
         /// # see also
         /// - [`type_at`]
         /// ----------------------------------------------------------------------------------------
-        template <usize index, typename... targs>
-        constexpr auto emplace(targs&&... args)
-            requires(has<index>()) and (rconstructible<type_at<index>, targs...>)
+        template <usize index, typename... arg_types>
+        constexpr auto emplace(arg_types&&... args)
+            requires(has<index>()) and (rconstructible<type_at<index>, arg_types...>)
         {
-            _impl.template emplace_value_by_index<index>(forward<targs>(args)...);
+            _impl.template emplace_value_by_index<index>(forward<arg_types>(args)...);
         }
 
         /// ----------------------------------------------------------------------------------------

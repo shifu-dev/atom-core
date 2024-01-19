@@ -187,7 +187,7 @@ namespace atom
         class at<index_to_get, index, in_type, types...>
         {
         public:
-            using type = tti::tconditional<index_to_get == index, in_type,
+            using type = tti::conditional_type<index_to_get == index, in_type,
                 typename at<index_to_get, index + 1, types...>::type>;
         };
 
@@ -288,7 +288,7 @@ namespace atom
         class remove_if<predicate_type, in_type, types...>
         {
         public:
-            using type = tti::tconditional<predicate_type<in_type>::value,
+            using type = tti::conditional_type<predicate_type<in_type>::value,
                 typename add_first<in_type,
                     typename remove_if<predicate_type, types...>::in_type>::type,
                 typename remove_if<predicate_type, types...>::type>;
@@ -396,7 +396,7 @@ namespace atom
         class replace_all<replace_type, with_type, in_type, types...>
         {
             using final_type =
-                tti::tconditional<tti::is_same<replace_type, in_type>, with_type, in_type>;
+                tti::conditional_type<tti::is_same<replace_type, in_type>, with_type, in_type>;
 
         public:
             using type = typename add_first<final_type,
