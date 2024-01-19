@@ -1,18 +1,18 @@
 #pragma once
 #include "atom/core.h"
-#include "atom/core/storage.h"
+#include "atom/core/static_storage.h"
 #include "atom/exceptions.h"
 #include "atom/invokable/invokable_ptr.h"
 
 namespace atom
 {
-    template <typename in_value_type, bool copy_, bool move_, bool allow_non_move, usize buf_size,
-        typename talloc_>
+    template <typename in_value_type, bool in_copy, bool in_move, bool in_allow_non_move,
+        usize in_buf_size, typename in_alloc_type>
     class _box_impl
     {
     public:
         using tval = in_value_type;
-        using talloc = talloc_;
+        using talloc = in_alloc_type;
 
         class copy_tag
         {};
@@ -45,22 +45,22 @@ namespace atom
     public:
         static consteval auto is_copyable() -> bool
         {
-            return copy_;
+            return in_copy;
         }
 
         static consteval auto is_movable() -> bool
         {
-            return move_;
+            return in_move;
         }
 
         static consteval auto allow_non_movable() -> bool
         {
-            return allow_non_move;
+            return in_allow_non_move;
         }
 
         static consteval auto buf_size() -> usize
         {
-            return buf_size;
+            return in_buf_size;
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -168,7 +168,7 @@ namespace atom
         constexpr auto emplace_val(targs&&... args, bool force_heap = false)
         {
             destroy_val();
-            _emplace_val<t>(fwd(args)..., force_heap);
+            _emplace_val<t>(forward<targs>(args)..., force_heap);
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -182,7 +182,7 @@ namespace atom
         template <typename t>
         constexpr auto set_val(t&& val, bool force_heap = false)
         {
-            emplace_val<tti::tremove_cvref<t>>(fwd(val));
+            emplace_val<tti::tremove_cvref<t>>(forward<t>(val), force_heap);
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -341,7 +341,7 @@ namespace atom
                 }
             }
 
-            // if the object is not movable but allow_non_move is allowed, we allocate it on heap to
+            // if the object is not movable but in_allow_non_move is allowed, we allocate it on heap to
             // avoid object's move constructor.
             if constexpr (is_movable() and allow_non_movable() and not rmove_constructible<t>)
             {
@@ -349,7 +349,7 @@ namespace atom
             }
 
             _val.val = _alloc_mem(_val.size, force_heap);
-            new (_val.val) t(fwd(args)...);
+            new (_val.val) t(forward<targs>(args)...);
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -525,10 +525,10 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         constexpr auto _alloc_mem(usize size, bool force_heap = false) -> void*
         {
-            if constexpr (buf_size > 0)
+            if constexpr (buf_size() > 0)
             {
                 // check if stack memory is big enough.
-                if (not force_heap and size <= buf_size)
+                if (not force_heap and size <= buf_size())
                 {
                     return _buf.mut_mem();
                 }
@@ -587,15 +587,15 @@ namespace atom
             const type_info* type;
             invokable_ptr<void(void*)> dtor;
 
-            atom_conditional_field(is_copyable(), invokable_ptr<void(void*, const void*)>) copy;
-            atom_conditional_field(is_movable(), invokable_ptr<void(void*, void*)>) move;
+            ATOM_CONDITIONAL_FIELD(is_copyable(), invokable_ptr<void(void*, const void*)>) copy;
+            ATOM_CONDITIONAL_FIELD(is_movable(), invokable_ptr<void(void*, void*)>) move;
         };
 
     private:
         talloc _alloc;
         void* _heap_mem;
         usize _heap_mem_size;
-        static_storage<buf_size> _buf;
+        static_storage<buf_size()> _buf;
         _val_data _val;
     };
 }
