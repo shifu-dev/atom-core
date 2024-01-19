@@ -15,6 +15,32 @@ namespace Atom
     /// --------------------------------------------------------------------------------------------
     namespace _TypeListOps
     {
+        template <typename T>
+        consteval auto _SizeOf() -> usize
+        {
+            if constexpr (TTI::IsSame<T, void>)
+            {
+                return 0;
+            }
+            else
+            {
+                return sizeof(T);
+            }
+        }
+
+        template <typename T>
+        consteval auto _AlignOf() -> usize
+        {
+            if constexpr (TTI::IsSame<T, void>)
+            {
+                return 0;
+            }
+            else
+            {
+                return alignof(T);
+            }
+        }
+
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////
         //// Count
@@ -41,7 +67,7 @@ namespace Atom
         class MaxSize<max, T, Ts...>
         {
         private:
-            static constexpr usize _ThisSize = sizeof(T);
+            static constexpr usize _ThisSize = _SizeOf<T>();
 
         public:
             static constexpr usize Value =
@@ -71,7 +97,7 @@ namespace Atom
         class MinSize<min, T, Ts...>
         {
         private:
-            static constexpr usize _ThisSize = alignof(T);
+            static constexpr usize _ThisSize = _AlignOf<T>();
 
         public:
             static constexpr usize Value =
@@ -101,7 +127,7 @@ namespace Atom
         class MaxAlign<max, T, Ts...>
         {
         private:
-            static constexpr usize _ThisAlign = alignof(T);
+            static constexpr usize _ThisAlign = _AlignOf<T>();
 
         public:
             static constexpr usize Value =
@@ -131,7 +157,7 @@ namespace Atom
         class MinAlign<min, T, Ts...>
         {
         private:
-            static constexpr usize _ThisAlign = sizeof(T);
+            static constexpr usize _ThisAlign = _SizeOf<T>();
 
         public:
             static constexpr usize Value =

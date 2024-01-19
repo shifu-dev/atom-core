@@ -32,7 +32,7 @@ namespace Atom
     class _VariantImpl
     {
     private:
-        template <typename... TOthers>
+        template <typename... Ts1>
         friend class _VariantImpl;
 
     private:
@@ -71,6 +71,10 @@ namespace Atom
         template <usize i>
         using TypeAtIndex = typename _Types::template At<i>;
 
+        using TFirst = TypeAtIndex<0>;
+
+        using TLast = TypeAtIndex<GetTypeCount() - 1>;
+
     public:
         /// ----------------------------------------------------------------------------------------
         /// Copy or move constructs value hold by variant `that`.
@@ -78,32 +82,32 @@ namespace Atom
         /// # Expects
         /// - Current value is null.
         /// ----------------------------------------------------------------------------------------
-        template <typename... TOthers>
-        constexpr auto constructValueFromVariant(const _VariantImpl<TOthers...>& that)
+        template <typename... Ts1>
+        constexpr auto constructValueFromVariant(const _VariantImpl<Ts1...>& that)
         {
-            _constructValueFromVariantImpl<false, 0, TOthers...>(that, that.getTypeIndex());
+            _constructValueFromVariantImpl<false, 0, Ts1...>(that, that.getTypeIndex());
         }
 
-        template <typename... TOthers>
-        constexpr auto constructValueFromVariant(_VariantImpl<TOthers...>&& that)
+        template <typename... Ts1>
+        constexpr auto constructValueFromVariant(_VariantImpl<Ts1...>&& that)
         {
-            _constructValueFromVariantImpl<true, 0, TOthers...>(that, that.getTypeIndex());
+            _constructValueFromVariantImpl<true, 0, Ts1...>(that, that.getTypeIndex());
         }
 
         /// ----------------------------------------------------------------------------------------
         /// Constructs or assigns value from `that` variant.
         /// Assigns if `that` variant holds the same type else constructs.
         /// ----------------------------------------------------------------------------------------
-        template <typename... TOthers>
-        constexpr auto setValueFromVariant(const _VariantImpl<TOthers...>& that)
+        template <typename... Ts1>
+        constexpr auto setValueFromVariant(const _VariantImpl<Ts1...>& that)
         {
-            _setValueFromVariantImpl<false, 0, TOthers...>(that, that.getTypeIndex());
+            _setValueFromVariantImpl<false, 0, Ts1...>(that, that.getTypeIndex());
         }
 
-        template <typename... TOthers>
-        constexpr auto setValueFromVariant(_VariantImpl<TOthers...>&& that)
+        template <typename... Ts1>
+        constexpr auto setValueFromVariant(_VariantImpl<Ts1...>&& that)
         {
-            _setValueFromVariantImpl<true, 0, TOthers...>(that, that.getTypeIndex());
+            _setValueFromVariantImpl<true, 0, Ts1...>(that, that.getTypeIndex());
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -232,10 +236,10 @@ namespace Atom
         }
 
     private:
-        template <bool move, usize index, typename TOther, typename... TOthers>
+        template <bool move, usize index, typename T1, typename... Ts1>
         constexpr auto _constructValueFromVariantImpl(auto& that, usize thatIndex)
         {
-            using ThatTypes = TypeList<TOthers...>;
+            using ThatTypes = TypeList<Ts1...>;
 
             if (index != thatIndex)
             {
@@ -245,27 +249,27 @@ namespace Atom
                 }
                 else
                 {
-                    _constructValueFromVariantImpl<move, index + 1, TOthers...>(that, thatIndex);
+                    _constructValueFromVariantImpl<move, index + 1, Ts1...>(that, thatIndex);
                     return;
                 }
             }
 
             if constexpr (move)
             {
-                _constructValueAs<TOther>(mov(that.template _getValueAs<TOther>()));
+                _constructValueAs<T1>(mov(that.template _getValueAs<T1>()));
             }
             else
             {
-                _constructValueAs<TOther>(that.template _getValueAs<TOther>());
+                _constructValueAs<T1>(that.template _getValueAs<T1>());
             }
 
-            _index = GetIndexForType<TOther>();
+            _index = GetIndexForType<T1>();
         }
 
-        template <bool move, usize index, typename TOther, typename... TOthers>
+        template <bool move, usize index, typename T1, typename... Ts1>
         constexpr auto _setValueFromVariantImpl(auto&& that, usize thatIndex)
         {
-            using ThatTypes = TypeList<TOthers...>;
+            using ThatTypes = TypeList<Ts1...>;
 
             if (index != thatIndex)
             {
@@ -275,24 +279,24 @@ namespace Atom
                 }
                 else
                 {
-                    _setValueFromVariantImpl<move, index + 1, TOthers...>(that, thatIndex);
+                    _setValueFromVariantImpl<move, index + 1, Ts1...>(that, thatIndex);
                     return;
                 }
             }
 
             // Index for this variant of type same as that `variant` current type.
-            usize indexForThis = GetIndexForType<TOther>();
+            usize indexForThis = GetIndexForType<T1>();
 
             // We already have this type, so we don't construct it but assign it.
             if (_index == indexForThis)
             {
                 if constexpr (move)
                 {
-                    _assignValueAs<TOther>(mov(that.template _getValueAs<TOther>()));
+                    _assignValueAs<T1>(mov(that.template _getValueAs<T1>()));
                 }
                 else
                 {
-                    _assignValueAs<TOther>(that.template _getValueAs<TOther>());
+                    _assignValueAs<T1>(that.template _getValueAs<T1>());
                 }
             }
             else
@@ -301,11 +305,11 @@ namespace Atom
 
                 if constexpr (move)
                 {
-                    _constructValueAs<TOther>(mov(that.template _getValueAs<TOther>()));
+                    _constructValueAs<T1>(mov(that.template _getValueAs<T1>()));
                 }
                 else
                 {
-                    _constructValueAs<TOther>(that.template _getValueAs<TOther>());
+                    _constructValueAs<T1>(that.template _getValueAs<T1>());
                 }
 
                 _index = indexForThis;
@@ -349,7 +353,8 @@ namespace Atom
         template <typename T>
         constexpr auto _destructValueAs()
         {
-            ObjHelper().Destruct(_getDataAs<T>());
+            if constexpr (not RSameAs<T, void>)
+                ObjHelper().Destruct(_getDataAs<T>());
         }
 
         template <typename T>

@@ -1,4 +1,5 @@
 #pragma once
+#include "Atom/Core/TypeList.h"
 #include "_VariantImpl.h"
 
 namespace Atom
@@ -9,19 +10,17 @@ namespace Atom
     /// - Check if requirements using TypeList functionality can be made concepts.
     /// --------------------------------------------------------------------------------------------
     template <typename... Ts>
-        requires(TypeList<Ts...>::AreUnique) and (TypeList<Ts...>::Count > 0)
-                and (not TypeList<Ts...>::template Has<void>)
     class Variant
     {
+        static_assert(TypeList<Ts...>::AreUnique, "Every type in Ts... should be unique.");
+        static_assert(TypeList<Ts...>::Count > 0, "At least one type needs to be specified.");
+
     private:
-        using _Impl = _VariantImpl<Ts...>;
+        using This = Variant<Ts...>;
+        using _TImpl = _VariantImpl<Ts...>;
 
         template <typename... TOthers>
-            requires(TypeList<TOthers...>::AreUnique) and (TypeList<TOthers...>::Count > 0)
-                    and (not TypeList<TOthers...>::template Has<void>)
         friend class Variant;
-
-        using Self = Variant<Ts...>;
 
     public:
         /// ----------------------------------------------------------------------------------------
@@ -36,7 +35,7 @@ namespace Atom
         template <typename T>
         static consteval auto Has() -> bool
         {
-            return _Impl::template HasType<T>();
+            return _TImpl::template HasType<T>();
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -45,7 +44,7 @@ namespace Atom
         template <usize i>
         static consteval auto Has() -> bool
         {
-            return _Impl::template HasIndex<i>();
+            return _TImpl::template HasIndex<i>();
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -53,7 +52,17 @@ namespace Atom
         /// ----------------------------------------------------------------------------------------
         template <usize i>
             requires(Has<i>())
-        using TAt = typename _Impl::template TypeAtIndex<i>;
+        using TAt = typename _TImpl::template TypeAtIndex<i>;
+
+        /// ----------------------------------------------------------------------------------------
+        /// Get first type.
+        /// ----------------------------------------------------------------------------------------
+        using TFirst = typename _TImpl::TFirst;
+
+        /// ----------------------------------------------------------------------------------------
+        /// Get first type.
+        /// ----------------------------------------------------------------------------------------
+        using TLast = typename _TImpl::TLast;
 
         /// ----------------------------------------------------------------------------------------
         /// Index of type. This index than can be used to access value of type at that index.
@@ -62,15 +71,15 @@ namespace Atom
         static consteval auto IndexOf() -> usize
             requires(Has<T>())
         {
-            return _Impl::template GetIndexForType<T>();
+            return _TImpl::template GetIndexForType<T>();
         }
 
         /// ----------------------------------------------------------------------------------------
         /// Count of types this variant supports.
         /// ----------------------------------------------------------------------------------------
-        static consteval auto count() -> usize
+        static consteval auto Count() -> usize
         {
-            return _Impl::GetTypeCount();
+            return _TImpl::GetTypeCount();
         }
 
     public:
@@ -78,7 +87,7 @@ namespace Atom
         /// # Default Constructor
         /// ----------------------------------------------------------------------------------------
         constexpr Variant()
-            requires(RDefaultConstructible<TAt<0>>)
+            requires(RDefaultConstructible<TFirst>) or (RIsVoid<TFirst>)
         {
             _impl.template constructValueByIndex<0>();
         }
@@ -98,39 +107,36 @@ namespace Atom
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Copy Constructor Template
+        /// # Template Copy Constructor
         /// ----------------------------------------------------------------------------------------
         template <typename... TOthers>
         constexpr Variant(const Variant<TOthers...>& that)
-            requires(Types::template Has<TOthers...>) and (RCopyConstructibleAll<TOthers...>)
+            requires(RCopyConstructibleAll<TOthers...>) and (Types::template Has<TOthers...>)
         {
             _impl.constructValueFromVariant(that._impl);
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Trivial Copy Assignment Operator
+        /// # Trivial Copy Operator
         /// ----------------------------------------------------------------------------------------
-        constexpr auto operator=(const Variant& that) -> Variant& = default;
+        constexpr Variant& operator=(const Variant& that) = default;
 
         /// ----------------------------------------------------------------------------------------
-        /// # Copy Assignment Operator
+        /// # Copy Operator
         /// ----------------------------------------------------------------------------------------
-        constexpr auto operator=(const Variant& that) -> Variant&
-            requires(RCopyConstructibleAll<Ts...>) and (RCopyAssignableAll<Ts...>)
-                    and (not RTriviallyCopyConstructibleAll<Ts...>)
-                    and (not RTriviallyCopyAssignableAll<Ts...>)
+        constexpr Variant& operator=(const Variant& that)
+            requires(RCopyableAll<Ts...>) and (not RTriviallyCopyAssignableAll<Ts...>)
         {
             _impl.setValueFromVariant(that._impl);
             return *this;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Copy Assignment Operator Template
+        /// # Template Copy Operator
         /// ----------------------------------------------------------------------------------------
         template <typename... TOthers>
-        constexpr auto operator=(const Variant<TOthers...>& that) -> Variant&
-            requires(Types::template Has<TOthers...>) and (RCopyConstructibleAll<TOthers...>)
-                    and (RCopyAssignableAll<TOthers...>)
+        constexpr Variant& operator=(const Variant<TOthers...>& that)
+            requires(RCopyableAll<TOthers...>) and (Types::template Has<TOthers...>)
         {
             _impl.setValueFromVariant(that._impl);
             return *this;
@@ -151,39 +157,36 @@ namespace Atom
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Move Constructor Template
+        /// # Template Move Constructor
         /// ----------------------------------------------------------------------------------------
         template <typename... TOthers>
         constexpr Variant(Variant<TOthers...>&& that)
-            requires(Types::template Has<TOthers...>) and (RMoveConstructibleAll<TOthers...>)
+            requires(RMoveConstructibleAll<TOthers...>) and (Types::template Has<TOthers...>)
         {
             _impl.constructValueFromVariant(mov(that._impl));
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Trivial Move Assignment Operator
+        /// # Trivial Move Operator
         /// ----------------------------------------------------------------------------------------
-        constexpr auto operator=(Variant&& that) -> Variant& = default;
+        constexpr Variant& operator=(Variant&& that) = default;
 
         /// ----------------------------------------------------------------------------------------
-        /// # Move Assignment Operator
+        /// # Move Operator
         /// ----------------------------------------------------------------------------------------
-        constexpr auto operator=(Variant&& that) -> Variant&
-            requires(RMoveConstructibleAll<Ts...>) and (RMoveAssignableAll<Ts...>)
-                    and (not RTriviallyMoveConstructibleAll<Ts...>)
-                    and (not RTriviallyMoveAssignableAll<Ts...>)
+        constexpr Variant& operator=(Variant&& that)
+            requires(RMoveableAll<Ts...>) and (not RTriviallyMoveAssignableAll<Ts...>)
         {
             _impl.setValueFromVariant(mov(that._impl));
             return *this;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # Move Assignment Operator Template
+        /// # Template Move Operator
         /// ----------------------------------------------------------------------------------------
         template <typename... TOthers>
-        constexpr auto operator=(Variant<TOthers...>&& that) -> Variant&
-            requires(Types::template Has<TOthers...>) and (RMoveConstructibleAll<Ts...>)
-                    and (RMoveAssignableAll<Ts...>)
+        constexpr Variant& operator=(Variant<TOthers...>&& that)
+            requires(RMoveableAll<Ts...>) and (Types::template Has<TOthers...>)
         {
             _impl.setValueFromVariant(mov(that._impl));
             return *this;
@@ -228,7 +231,7 @@ namespace Atom
         /// - `value`: Value to assign.
         /// ----------------------------------------------------------------------------------------
         template <typename T>
-        constexpr auto operator=(const T& value) -> Variant&
+        constexpr Variant& operator=(const T& value)
             requires(Has<T>())
         {
             _impl.setValue(value);
@@ -244,7 +247,7 @@ namespace Atom
         /// - `value`: Value to assign.
         /// ----------------------------------------------------------------------------------------
         template <typename T>
-        constexpr auto operator=(T&& value) -> Variant&
+        constexpr Variant& operator=(T&& value)
             requires(Has<T>())
         {
             _impl.setValue(mov(value));
@@ -300,11 +303,24 @@ namespace Atom
         /// # Parameters
         /// - `value`: Value to set.
         /// ----------------------------------------------------------------------------------------
-        template <typename TFwd, typename T = TTI::TRemoveQuailfiersRef<TFwd>>
-        constexpr auto set(TFwd&& value)
-            requires(Has<T>()) and (RConstructible<T, TFwd>)
+        template <typename T>
+        constexpr auto set(const T&& value)
+            requires(Has<T>()) and (RCopyConstructible<T>)
         {
-            _impl.setValue(forward<TFwd>(value));
+            _impl.setValue(value);
+        }
+
+        /// ----------------------------------------------------------------------------------------
+        /// Sets the value to `value`.
+        ///
+        /// # Parameters
+        /// - `value`: Value to set.
+        /// ----------------------------------------------------------------------------------------
+        template <typename T>
+        constexpr auto set(T&& value)
+            requires(Has<T>()) and (RMoveConstructible<T>)
+        {
+            _impl.setValue(mov(value));
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -315,7 +331,7 @@ namespace Atom
         /// ----------------------------------------------------------------------------------------
         template <typename T>
         constexpr auto as() const -> const T&
-            requires(Has<T>())
+            requires(Has<T>()) and (not RIsVoid<T>)
         {
             Contracts::Expects(is<T>(), "Access to invalid type.");
 
@@ -330,7 +346,31 @@ namespace Atom
         /// ----------------------------------------------------------------------------------------
         template <typename T>
         constexpr auto as() -> T&
-            requires(Has<T>())
+            requires(Has<T>()) and (not RIsVoid<T>)
+        {
+            Contracts::DebugExpects(is<T>(), "Access to invalid type.");
+
+            return _impl.template getValueByType<T>();
+        }
+
+        /// ----------------------------------------------------------------------------------------
+        /// 
+        /// ----------------------------------------------------------------------------------------
+        template <typename T>
+        constexpr auto asCheck() const -> const T&
+            requires(Has<T>()) and (not RIsVoid<T>)
+        {
+            Contracts::Expects(is<T>(), "Access to invalid type.");
+
+            return _impl.template getValueByType<T>();
+        }
+
+        /// ----------------------------------------------------------------------------------------
+        /// 
+        /// ----------------------------------------------------------------------------------------
+        template <typename T>
+        constexpr auto asCheck() -> T&
+            requires(Has<T>()) and (not RIsVoid<T>)
         {
             Contracts::Expects(is<T>(), "Access to invalid type.");
 
@@ -348,7 +388,7 @@ namespace Atom
         /// ----------------------------------------------------------------------------------------
         template <usize i>
         constexpr auto at() const -> const TAt<i>&
-            requires(Has<i>())
+            requires(Has<i>()) and (not RIsVoid<TAt<i>>)
         {
             Contracts::Expects(is<i>(), "Access to invalid type by index.");
 
@@ -366,7 +406,31 @@ namespace Atom
         /// ----------------------------------------------------------------------------------------
         template <usize i>
         constexpr auto at() -> TAt<i>&
-            requires(Has<i>())
+            requires(Has<i>()) and (not RIsVoid<TAt<i>>)
+        {
+            Contracts::DebugExpects(is<i>(), "Access to invalid type by index.");
+
+            return _impl.template getValueByIndex<i>();
+        }
+
+        /// ----------------------------------------------------------------------------------------
+        /// 
+        /// ----------------------------------------------------------------------------------------
+        template <usize i>
+        constexpr auto atCheck() const -> const TAt<i>&
+            requires(Has<i>()) and (not RIsVoid<TAt<i>>)
+        {
+            Contracts::Expects(is<i>(), "Access to invalid type by index.");
+
+            return _impl.template getValueByIndex<i>();
+        }
+
+        /// ----------------------------------------------------------------------------------------
+        /// 
+        /// ----------------------------------------------------------------------------------------
+        template <usize i>
+        constexpr auto atCheck() -> TAt<i>&
+            requires(Has<i>()) and (not RIsVoid<TAt<i>>)
         {
             Contracts::Expects(is<i>(), "Access to invalid type by index.");
 
@@ -405,6 +469,6 @@ namespace Atom
         }
 
     private:
-        _Impl _impl;
+        _TImpl _impl;
     };
 }
