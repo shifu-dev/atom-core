@@ -7,7 +7,7 @@ namespace atom
     /// --------------------------------------------------------------------------------------------
     ///
     /// --------------------------------------------------------------------------------------------
-    template <typename... ts>
+    template <typename... types>
     class type_list;
 
     /// --------------------------------------------------------------------------------------------
@@ -15,17 +15,43 @@ namespace atom
     /// --------------------------------------------------------------------------------------------
     namespace _type_list_ops
     {
+        template <typename type>
+        consteval auto _sizeof() -> usize
+        {
+            if constexpr (tti::is_same<type, void>)
+            {
+                return 0;
+            }
+            else
+            {
+                return sizeof(type);
+            }
+        }
+
+        template <typename type>
+        consteval auto _alignof() -> usize
+        {
+            if constexpr (tti::is_same<type, void>)
+            {
+                return 0;
+            }
+            else
+            {
+                return alignof(type);
+            }
+        }
+
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////
         //// count
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <typename... ts>
+        template <typename... types>
         class count
         {
         public:
-            static constexpr usize value = sizeof...(ts);
+            static constexpr usize value = _sizeof<types>()...;
         };
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -34,18 +60,18 @@ namespace atom
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <usize max, typename... ts>
+        template <usize max, typename... types>
         class max_size;
 
-        template <usize max, typename in_type, typename... ts>
-        class max_size<max, in_type, ts...>
+        template <usize max, typename in_type, typename... types>
+        class max_size<max, in_type, types...>
         {
         private:
-            static constexpr usize _this_size = sizeof(in_type);
+            static constexpr usize _this_size = _sizeof(in_type);
 
         public:
             static constexpr usize value =
-                max_size<(_this_size > max ? _this_size : max), ts...>::value;
+                max_size<(_this_size > max ? _this_size : max), types...>::value;
         };
 
         template <usize max>
@@ -64,18 +90,18 @@ namespace atom
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <usize min, typename... ts>
+        template <usize min, typename... types>
         class min_size;
 
-        template <usize min, typename in_type, typename... ts>
-        class min_size<min, in_type, ts...>
+        template <usize min, typename in_type, typename... types>
+        class min_size<min, in_type, types...>
         {
         private:
-            static constexpr usize _this_size = alignof(in_type);
+            static constexpr usize _this_size = _alignof(in_type);
 
         public:
             static constexpr usize value =
-                min_size<(_this_size < min ? _this_size : min), ts...>::value;
+                min_size<(_this_size < min ? _this_size : min), types...>::value;
         };
 
         template <usize min>
@@ -94,18 +120,18 @@ namespace atom
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <usize max, typename... ts>
+        template <usize max, typename... types>
         class max_align;
 
-        template <usize max, typename in_type, typename... ts>
-        class max_align<max, in_type, ts...>
+        template <usize max, typename in_type, typename... types>
+        class max_align<max, in_type, types...>
         {
         private:
-            static constexpr usize _this_align = alignof(in_type);
+            static constexpr usize _this_align = _alignof(in_type);
 
         public:
             static constexpr usize value =
-                max_align<(_this_align > max ? _this_align : max), ts...>::value;
+                max_align<(_this_align > max ? _this_align : max), types...>::value;
         };
 
         template <usize max>
@@ -124,18 +150,18 @@ namespace atom
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <usize min, typename... ts>
+        template <usize min, typename... types>
         class min_align;
 
-        template <usize min, typename in_type, typename... ts>
-        class min_align<min, in_type, ts...>
+        template <usize min, typename in_type, typename... types>
+        class min_align<min, in_type, types...>
         {
         private:
-            static constexpr usize _this_align = sizeof(in_type);
+            static constexpr usize _this_align = _sizeof(in_type);
 
         public:
             static constexpr usize value =
-                min_align<(_this_align < min ? _this_align : min), ts...>::value;
+                min_align<(_this_align < min ? _this_align : min), types...>::value;
         };
 
         template <usize min>
@@ -154,15 +180,15 @@ namespace atom
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <usize index_to_get, usize index, typename... ts>
+        template <usize index_to_get, usize index, typename... types>
         class at;
 
-        template <usize index_to_get, usize index, typename in_type, typename... ts>
-        class at<index_to_get, index, in_type, ts...>
+        template <usize index_to_get, usize index, typename in_type, typename... types>
+        class at<index_to_get, index, in_type, types...>
         {
         public:
             using type = tti::tconditional<index_to_get == index, in_type,
-                typename at<index_to_get, index + 1, ts...>::type>;
+                typename at<index_to_get, index + 1, types...>::type>;
         };
 
         template <usize index_to_get, usize index>
@@ -178,15 +204,15 @@ namespace atom
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <typename tto_get, usize index, typename... ts>
+        template <typename tto_get, usize index, typename... types>
         class index_of;
 
-        template <typename tto_get, usize index, typename in_type, typename... ts>
-        class index_of<tto_get, index, in_type, ts...>
+        template <typename tto_get, usize index, typename in_type, typename... types>
+        class index_of<tto_get, index, in_type, types...>
         {
         public:
             static constexpr usize value =
-                rsame_as<tto_get, in_type> ? index : index_of<tto_get, index + 1, ts...>::value;
+                rsame_as<tto_get, in_type> ? index : index_of<tto_get, index + 1, types...>::value;
         };
 
         template <typename tto_get, usize index>
@@ -202,11 +228,11 @@ namespace atom
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <typename in_type, typename... ts>
+        template <typename in_type, typename... types>
         class has
         {
         public:
-            static constexpr bool value = index_of<in_type, 0, ts...>::value != -1;
+            static constexpr bool value = index_of<in_type, 0, types...>::value != -1;
         };
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -218,11 +244,11 @@ namespace atom
         template <typename in_type, typename tlist>
         class add_first;
 
-        template <typename in_type, typename... ts>
-        class add_first<in_type, type_list<ts...>>
+        template <typename in_type, typename... types>
+        class add_first<in_type, type_list<types...>>
         {
         public:
-            using type = type_list<in_type, ts...>;
+            using type = type_list<in_type, types...>;
         };
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -234,11 +260,11 @@ namespace atom
         template <typename in_type, typename tlist>
         class add_last;
 
-        template <typename in_type, typename... ts>
-        class add_last<in_type, type_list<ts...>>
+        template <typename in_type, typename... types>
+        class add_last<in_type, type_list<types...>>
         {
         public:
-            using type = type_list<ts..., in_type>;
+            using type = type_list<types..., in_type>;
         };
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -247,7 +273,7 @@ namespace atom
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <template <typename in_type> typename predicate_type, typename... ts>
+        template <template <typename in_type> typename predicate_type, typename... types>
         class remove_if;
 
         template <template <typename in_type> typename predicate_type>
@@ -258,14 +284,14 @@ namespace atom
         };
 
         template <template <typename in_type> typename predicate_type, typename in_type,
-            typename... ts>
-        class remove_if<predicate_type, in_type, ts...>
+            typename... types>
+        class remove_if<predicate_type, in_type, types...>
         {
         public:
             using type = tti::tconditional<predicate_type<in_type>::value,
                 typename add_first<in_type,
-                    typename remove_if<predicate_type, ts...>::in_type>::type,
-                typename remove_if<predicate_type, ts...>::type>;
+                    typename remove_if<predicate_type, types...>::in_type>::type,
+                typename remove_if<predicate_type, types...>::type>;
         };
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -274,7 +300,7 @@ namespace atom
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <typename in_type, typename... ts>
+        template <typename in_type, typename... types>
         class remove
         {
             template <typename check_type>
@@ -284,7 +310,7 @@ namespace atom
             };
 
         public:
-            using type = typename remove_if<_pred, ts...>::type;
+            using type = typename remove_if<_pred, types...>::type;
         };
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -293,14 +319,14 @@ namespace atom
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <typename... ts>
+        template <typename... types>
         class remove_first;
 
-        template <typename in_type, typename... ts>
-        class remove_first<in_type, ts...>
+        template <typename in_type, typename... types>
+        class remove_first<in_type, types...>
         {
         public:
-            using type = type_list<ts...>;
+            using type = type_list<types...>;
         };
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -309,14 +335,14 @@ namespace atom
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <typename... ts>
+        template <typename... types>
         class remove_last;
 
-        template <typename in_type, typename... ts>
-        class remove_last<in_type, ts...>
+        template <typename in_type, typename... types>
+        class remove_last<in_type, types...>
         {
         public:
-            using type = typename add_first<in_type, remove_last<ts...>>::type;
+            using type = typename add_first<in_type, remove_last<types...>>::type;
         };
 
         template <typename in_type>
@@ -332,7 +358,7 @@ namespace atom
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <typename... ts>
+        template <typename... types>
         class are_unique;
 
         template <>
@@ -342,12 +368,12 @@ namespace atom
             static constexpr bool value = true;
         };
 
-        template <typename in_type, typename... ts>
-        class are_unique<in_type, ts...>
+        template <typename in_type, typename... types>
+        class are_unique<in_type, types...>
         {
         public:
             static constexpr bool value =
-                not has<in_type, ts...>::value and are_unique<ts...>::value;
+                not has<in_type, types...>::value and are_unique<types...>::value;
         };
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -356,7 +382,7 @@ namespace atom
         ////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        template <typename replace_type, typename with_type, typename... ts>
+        template <typename replace_type, typename with_type, typename... types>
         class replace_all;
 
         template <typename replace_type, typename with_type>
@@ -366,49 +392,49 @@ namespace atom
             using type = type_list<>;
         };
 
-        template <typename replace_type, typename with_type, typename in_type, typename... ts>
-        class replace_all<replace_type, with_type, in_type, ts...>
+        template <typename replace_type, typename with_type, typename in_type, typename... types>
+        class replace_all<replace_type, with_type, in_type, types...>
         {
             using final_type =
                 tti::tconditional<tti::is_same<replace_type, in_type>, with_type, in_type>;
 
         public:
             using type = typename add_first<final_type,
-                typename replace_all<replace_type, with_type, ts...>::in_type>::type;
+                typename replace_all<replace_type, with_type, types...>::in_type>::type;
         };
     };
 
     /// --------------------------------------------------------------------------------------------
     ///
     /// --------------------------------------------------------------------------------------------
-    template <typename... ts>
+    template <typename... types>
     class type_list
     {
     public:
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        static constexpr usize count = _type_list_ops::template count<ts...>::value;
+        static constexpr usize count = _type_list_ops::template count<types...>::value;
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        static constexpr usize max_size = _type_list_ops::template max_size<0, ts...>::value;
+        static constexpr usize max_size = _type_list_ops::template max_size<0, types...>::value;
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        static constexpr usize min_size = _type_list_ops::template max_size<0, ts...>::value;
+        static constexpr usize min_size = _type_list_ops::template max_size<0, types...>::value;
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        static constexpr usize max_align = _type_list_ops::template max_align<0, ts...>::value;
+        static constexpr usize max_align = _type_list_ops::template max_align<0, types...>::value;
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        static constexpr usize min_align = _type_list_ops::template max_align<0, ts...>::value;
+        static constexpr usize min_align = _type_list_ops::template max_align<0, types...>::value;
 
         /// ----------------------------------------------------------------------------------------
         /// # to do
@@ -416,21 +442,21 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <usize i>
             requires(i < count)
-        using at = typename _type_list_ops::template at<i, 0, ts...>::type;
+        using at = typename _type_list_ops::template at<i, 0, types...>::type;
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
         template <typename... ts_to_check>
         static constexpr bool has =
-            (_type_list_ops::template has<ts_to_check, ts...>::value and ...);
+            (_type_list_ops::template has<ts_to_check, types...>::value and ...);
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
         template <typename tto_replace, typename with_type>
         using replace_all =
-            typename _type_list_ops::template replace_all<tto_replace, with_type, ts...>::type;
+            typename _type_list_ops::template replace_all<tto_replace, with_type, types...>::type;
 
         /// ----------------------------------------------------------------------------------------
         /// # to do
@@ -439,11 +465,11 @@ namespace atom
         template <typename in_type>
             requires(has<in_type>)
         static constexpr usize index_of =
-            _type_list_ops::template index_of<in_type, 0, ts...>::value;
+            _type_list_ops::template index_of<in_type, 0, types...>::value;
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
-        static constexpr bool are_unique = _type_list_ops::template are_unique<ts...>::value;
+        static constexpr bool are_unique = _type_list_ops::template are_unique<types...>::value;
     };
 }

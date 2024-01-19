@@ -7,60 +7,60 @@
 
 namespace atom
 {
-    template <typename... ts>
+    template <typename... types>
     class _variant_storage
     {
     public:
         constexpr auto get_data() -> mut_mem_ptr<void>
         {
-            return &_my_storage.storage;
+            return &_storage.storage;
         }
 
         constexpr auto get_data() const -> mem_ptr<void>
         {
-            return &_my_storage.storage;
+            return &_storage.storage;
         }
 
     private:
-        static_storage_for<ts...> _my_storage;
+        static_storage_for<types...> _storage;
     };
 
     /// --------------------------------------------------------------------------------------------
     /// implementatiion of [`variant`].
     /// --------------------------------------------------------------------------------------------
-    template <typename... ts>
+    template <typename... types>
     class _variant_impl
     {
     private:
-        template <typename... tothers>
+        template <typename... other_types>
         friend class _variant_impl;
 
     private:
-        using _types = type_list<ts...>;
-        using _storage = _variant_storage<ts...>;
+        using _type_list = type_list<types...>;
+        using _storage_type = _variant_storage<types...>;
 
     public:
         static constexpr auto get_type_count() -> usize
         {
-            return _types::count;
+            return _type_list::count;
         }
 
         template <typename type>
         static consteval auto has_type() -> bool
         {
-            return _types::template has<type>;
+            return _type_list::template has<type>;
         }
 
-        template <usize i>
+        template <usize index>
         static consteval auto has_index() -> bool
         {
-            return i < _types::count;
+            return index < _type_list::count;
         }
 
         template <typename type>
         static consteval auto get_index_for_type() -> usize
         {
-            return _types::template index_of<type>;
+            return _type_list::template index_of<type>;
         }
 
         static consteval auto get_null_type_index() -> usize
@@ -68,8 +68,12 @@ namespace atom
             return -1;
         }
 
-        template <usize i>
-        using type_at_index = typename _types::template at<i>;
+        template <usize index>
+        using type_at_index = typename _type_list::template at<index>;
+
+        using tfirst = type_at_index<0>;
+
+        using tlast = type_at_index<get_type_count() - 1>;
 
     public:
         /// ----------------------------------------------------------------------------------------
@@ -78,32 +82,34 @@ namespace atom
         /// # expects
         /// - current value is null.
         /// ----------------------------------------------------------------------------------------
-        template <typename... tothers>
-        constexpr auto construct_value_from_variant(const _variant_impl<tothers...>& that)
+        template <typename... other_types>
+        constexpr auto construct_value_from_variant(const _variant_impl<other_types...>& that)
         {
-            _construct_value_from_variant_impl<false, 0, tothers...>(that, that.get_type_index());
+            _construct_value_from_variant_impl<false, 0, other_types...>(
+                that, that.get_type_index());
         }
 
-        template <typename... tothers>
-        constexpr auto construct_value_from_variant(_variant_impl<tothers...>&& that)
+        template <typename... other_types>
+        constexpr auto construct_value_from_variant(_variant_impl<other_types...>&& that)
         {
-            _construct_value_from_variant_impl<true, 0, tothers...>(that, that.get_type_index());
+            _construct_value_from_variant_impl<true, 0, other_types...>(
+                that, that.get_type_index());
         }
 
         /// ----------------------------------------------------------------------------------------
         /// constructs or assigns value from `that` variant.
         /// assigns if `that` variant holds the same type else constructs.
         /// ----------------------------------------------------------------------------------------
-        template <typename... tothers>
-        constexpr auto set_value_from_variant(const _variant_impl<tothers...>& that)
+        template <typename... other_types>
+        constexpr auto set_value_from_variant(const _variant_impl<other_types...>& that)
         {
-            _set_value_from_variant_impl<false, 0, tothers...>(that, that.get_type_index());
+            _set_value_from_variant_impl<false, 0, other_types...>(that, that.get_type_index());
         }
 
-        template <typename... tothers>
-        constexpr auto set_value_from_variant(_variant_impl<tothers...>&& that)
+        template <typename... other_types>
+        constexpr auto set_value_from_variant(_variant_impl<other_types...>&& that)
         {
-            _set_value_from_variant_impl<true, 0, tothers...>(that, that.get_type_index());
+            _set_value_from_variant_impl<true, 0, other_types...>(that, that.get_type_index());
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -120,15 +126,15 @@ namespace atom
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// constructs value of type at index `i` with args `args`.
+        /// constructs value of type at index `index` with args `args`.
         ///
         /// # expects
         /// - current value is null.
         /// ----------------------------------------------------------------------------------------
-        template <usize i, typename... arg_types>
+        template <usize index, typename... arg_types>
         constexpr auto construct_value_by_index(arg_types&&... args)
         {
-            construct_value_by_type<type_at_index<i>>(forward<arg_types>(args)...);
+            construct_value_by_type<type_at_index<index>>(forward<arg_types>(args)...);
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -147,15 +153,15 @@ namespace atom
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// constructs value of type at index `i` with args `args`.
+        /// constructs value of type at index `index` with args `args`.
         ///
         /// # expects
         /// - current value is null.
         /// ----------------------------------------------------------------------------------------
-        template <usize i, typename... arg_types>
+        template <usize index, typename... arg_types>
         constexpr auto emplace_value_by_index(arg_types&&... args)
         {
-            emplace_value_by_type<type_at_index<i>>(forward<arg_types>(args)...);
+            emplace_value_by_type<type_at_index<index>>(forward<arg_types>(args)...);
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -197,16 +203,16 @@ namespace atom
             return _get_value_as<type>();
         }
 
-        template <usize i>
-        constexpr auto get_value_by_index() const -> const type_at_index<i>&
+        template <usize index>
+        constexpr auto get_value_by_index() const -> const type_at_index<index>&
         {
-            return get_value_by_type<type_at_index<i>>();
+            return get_value_by_type<type_at_index<index>>();
         }
 
-        template <usize i>
-        constexpr auto get_value_by_index() -> type_at_index<i>&
+        template <usize index>
+        constexpr auto get_value_by_index() -> type_at_index<index>&
         {
-            return get_value_by_type<type_at_index<i>>();
+            return get_value_by_type<type_at_index<index>>();
         }
 
         template <typename type>
@@ -215,10 +221,10 @@ namespace atom
             return get_index_for_type<type>() == get_type_index();
         }
 
-        template <usize i>
+        template <usize index>
         constexpr auto is_index() const -> bool
         {
-            return i == get_type_index();
+            return index == get_type_index();
         }
 
         constexpr auto get_type_index() const -> usize
@@ -228,14 +234,14 @@ namespace atom
 
         constexpr auto destroy_value()
         {
-            _destroy_value_impl<0, ts...>(get_type_index());
+            _destroy_value_impl<0, types...>(get_type_index());
         }
 
     private:
-        template <bool move, usize index, typename tother, typename... tothers>
+        template <bool move, usize index, typename other_type, typename... other_types>
         constexpr auto _construct_value_from_variant_impl(auto& that, usize that_index)
         {
-            using that_types = type_list<tothers...>;
+            using that_types = type_list<other_types...>;
 
             if (index != that_index)
             {
@@ -245,27 +251,28 @@ namespace atom
                 }
                 else
                 {
-                    _construct_value_from_variant_impl<move, index + 1, tothers...>(that, that_index);
+                    _construct_value_from_variant_impl<move, index + 1, other_types...>(
+                        that, that_index);
                     return;
                 }
             }
 
             if constexpr (move)
             {
-                _construct_value_as<tother>(mov(that.template _get_value_as<tother>()));
+                _construct_value_as<other_type>(mov(that.template _get_value_as<other_type>()));
             }
             else
             {
-                _construct_value_as<tother>(that.template _get_value_as<tother>());
+                _construct_value_as<other_type>(that.template _get_value_as<other_type>());
             }
 
-            _index = get_index_for_type<tother>();
+            _index = get_index_for_type<other_type>();
         }
 
-        template <bool move, usize index, typename tother, typename... tothers>
+        template <bool move, usize index, typename other_type, typename... other_types>
         constexpr auto _set_value_from_variant_impl(auto&& that, usize that_index)
         {
-            using that_types = type_list<tothers...>;
+            using that_types = type_list<other_types...>;
 
             if (index != that_index)
             {
@@ -275,24 +282,24 @@ namespace atom
                 }
                 else
                 {
-                    _set_value_from_variant_impl<move, index + 1, tothers...>(that, that_index);
+                    _set_value_from_variant_impl<move, index + 1, other_types...>(that, that_index);
                     return;
                 }
             }
 
             // index for this variant of type same as that `variant` current type.
-            usize index_for_this = get_index_for_type<tother>();
+            usize index_for_this = get_index_for_type<other_type>();
 
-            // we already have this type, so we don't construct it but assign it.
+            // we already have this type, so we don'type construct it but assign it.
             if (_index == index_for_this)
             {
                 if constexpr (move)
                 {
-                    _assign_value_as<tother>(mov(that.template _get_value_as<tother>()));
+                    _assign_value_as<other_type>(mov(that.template _get_value_as<other_type>()));
                 }
                 else
                 {
-                    _assign_value_as<tother>(that.template _get_value_as<tother>());
+                    _assign_value_as<other_type>(that.template _get_value_as<other_type>());
                 }
             }
             else
@@ -301,23 +308,23 @@ namespace atom
 
                 if constexpr (move)
                 {
-                    _construct_value_as<tother>(mov(that.template _get_value_as<tother>()));
+                    _construct_value_as<other_type>(mov(that.template _get_value_as<other_type>()));
                 }
                 else
                 {
-                    _construct_value_as<tother>(that.template _get_value_as<tother>());
+                    _construct_value_as<other_type>(that.template _get_value_as<other_type>());
                 }
 
                 _index = index_for_this;
             }
         }
 
-        template <usize index, typename type, typename... ts_>
-        constexpr auto _destroy_value_impl(usize i)
+        template <usize index, typename type, typename... in_other_types>
+        constexpr auto _destroy_value_impl(usize index)
         {
-            using types = type_list<ts_...>;
+            using types = type_list<in_other_types...>;
 
-            if (i != index)
+            if (index != index)
             {
                 if constexpr (types::count == 0)
                 {
@@ -325,8 +332,8 @@ namespace atom
                 }
                 else
                 {
-                    // recursion to find type at index i.
-                    _destroy_value_impl<index + 1, ts_...>(i);
+                    // recursion to find type at index index.
+                    _destroy_value_impl<index + 1, in_other_types...>(index);
                     return;
                 }
             }
@@ -340,16 +347,17 @@ namespace atom
             obj_helper().construct(_get_data_as<type>(), forward<arg_types>(args)...);
         }
 
-        template <typename type, typename t1>
-        constexpr auto _assign_value_as(t1&& val)
+        template <typename type, typename other_type>
+        constexpr auto _assign_value_as(other_type&& val)
         {
-            obj_helper().assign(_get_data_as<type>(), forward<t1>(val));
+            obj_helper().assign(_get_data_as<type>(), forward<other_type>(val));
         }
 
         template <typename type>
         constexpr auto _destruct_value_as()
         {
-            obj_helper().destruct(_get_data_as<type>());
+            if constexpr (not rsame_as<type, void>)
+                obj_helper().destruct(_get_data_as<type>());
         }
 
         template <typename type>
@@ -367,17 +375,17 @@ namespace atom
         template <typename type>
         constexpr auto _get_data_as() -> mut_mem_ptr<type>
         {
-            return _my_storage.get_data();
+            return _storage_type.get_data();
         }
 
         template <typename type>
         constexpr auto _get_data_as() const -> mem_ptr<type>
         {
-            return _my_storage.get_data();
+            return _storage_type.get_data();
         }
 
     private:
-        _storage _my_storage;
+        _storage_type _storage_type;
         usize _index = 0;
     };
 }

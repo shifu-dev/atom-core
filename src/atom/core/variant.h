@@ -1,4 +1,5 @@
 #pragma once
+#include "atom/core/type_list.h"
 #include "_variant_impl.h"
 
 namespace atom
@@ -8,26 +9,24 @@ namespace atom
     /// - check requirements for assignments.
     /// - check if requirements using type_list functionality can be made concepts.
     /// --------------------------------------------------------------------------------------------
-    template <typename... ts>
-        requires(type_list<ts...>::are_unique) and (type_list<ts...>::count > 0)
-                and (not type_list<ts...>::template has<void>)
+    template <typename... types>
     class variant
     {
+        static_assert(type_list<types...>::are_unique, "every type in types... should be unique.");
+        static_assert(type_list<types...>::count > 0, "at least one type needs to be specified.");
+
     private:
-        using _impl_type = _variant_impl<ts...>;
+        using this_type = variant<types...>;
+        using _impl_type = _variant_impl<types...>;
 
         template <typename... tothers>
-            requires(type_list<tothers...>::are_unique) and (type_list<tothers...>::count > 0)
-                    and (not type_list<tothers...>::template has<void>)
         friend class variant;
-
-        using self = variant<ts...>;
 
     public:
         /// ----------------------------------------------------------------------------------------
         /// type_list of this variant.
         /// ----------------------------------------------------------------------------------------
-        using types = type_list<ts...>;
+        using types = type_list<types...>;
 
     public:
         /// ----------------------------------------------------------------------------------------
@@ -40,23 +39,33 @@ namespace atom
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// check if index `i` can be used to access value.
+        /// check if index `index` can be used to access value.
         /// ----------------------------------------------------------------------------------------
-        template <usize i>
+        template <usize index>
         static consteval auto has() -> bool
         {
-            return _impl_type::template has_index<i>();
+            return _impl_type::template has_index<index>();
         }
 
         /// ----------------------------------------------------------------------------------------
         /// get type at index.
         /// ----------------------------------------------------------------------------------------
-        template <usize i>
-            requires(has<i>())
-        using tat = typename _impl_type::template type_at_index<i>;
+        template <usize index>
+            requires(has<index>())
+        using type_at = typename _impl_type::template type_at_index<index>;
 
         /// ----------------------------------------------------------------------------------------
-        /// index of type. this_type index than can be used to access value of type at that index.
+        /// get first type.
+        /// ----------------------------------------------------------------------------------------
+        using first_type = typename _impl_type::first_type;
+
+        /// ----------------------------------------------------------------------------------------
+        /// get first type.
+        /// ----------------------------------------------------------------------------------------
+        using last_type = typename _impl_type::last_type;
+
+        /// ----------------------------------------------------------------------------------------
+        /// index of type. this index than can be used to access value of type at that index.
         /// ----------------------------------------------------------------------------------------
         template <typename type>
         static consteval auto index_of() -> usize
@@ -78,7 +87,7 @@ namespace atom
         /// # default constructor
         /// ----------------------------------------------------------------------------------------
         constexpr variant()
-            requires(rdefault_constructible<tat<0>>)
+            requires(rdefault_constructible<first_type>) or (ris_void<first_type>)
         {
             _impl.template construct_value_by_index<0>();
         }
@@ -92,45 +101,43 @@ namespace atom
         /// # copy constructor
         /// ----------------------------------------------------------------------------------------
         constexpr variant(const variant& that)
-            requires(rcopy_constructible_all<ts...>) and (not rtrivially_copy_constructible_all<ts...>)
+            requires(rcopy_constructible_all<types...>)
+                    and (not rtrivially_copy_constructible_all<types...>)
         {
             _impl.construct_value_from_variant(that._impl);
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # copy constructor template
+        /// # template copy constructor
         /// ----------------------------------------------------------------------------------------
         template <typename... tothers>
         constexpr variant(const variant<tothers...>& that)
-            requires(types::template has<tothers...>) and (rcopy_constructible_all<tothers...>)
+            requires(rcopy_constructible_all<tothers...>) and (types::template has<tothers...>)
         {
             _impl.construct_value_from_variant(that._impl);
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # trivial copy assignment operator
+        /// # trivial copy operator
         /// ----------------------------------------------------------------------------------------
-        constexpr auto operator=(const variant& that) -> variant& = default;
+        constexpr variant& operator=(const variant& that) = default;
 
         /// ----------------------------------------------------------------------------------------
-        /// # copy assignment operator
+        /// # copy operator
         /// ----------------------------------------------------------------------------------------
-        constexpr auto operator=(const variant& that) -> variant&
-            requires(rcopy_constructible_all<ts...>) and (rcopy_assignable_all<ts...>)
-                    and (not rtrivially_copy_constructible_all<ts...>)
-                    and (not rtrivially_copy_assignable_all<ts...>)
+        constexpr variant& operator=(const variant& that)
+            requires(rcopyable_all<types...>) and (not rtrivially_copy_assignable_all<types...>)
         {
             _impl.set_value_from_variant(that._impl);
             return *this;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # copy assignment operator template
+        /// # template copy operator
         /// ----------------------------------------------------------------------------------------
         template <typename... tothers>
-        constexpr auto operator=(const variant<tothers...>& that) -> variant&
-            requires(types::template has<tothers...>) and (rcopy_constructible_all<tothers...>)
-                    and (rcopy_assignable_all<tothers...>)
+        constexpr variant& operator=(const variant<tothers...>& that)
+            requires(rcopyable_all<tothers...>) and (types::template has<tothers...>)
         {
             _impl.set_value_from_variant(that._impl);
             return *this;
@@ -145,45 +152,43 @@ namespace atom
         /// # move constructor
         /// ----------------------------------------------------------------------------------------
         constexpr variant(variant&& that)
-            requires(rmove_constructible_all<ts...>) and (not rtrivially_move_constructible_all<ts...>)
+            requires(rmove_constructible_all<types...>)
+                    and (not rtrivially_move_constructible_all<types...>)
         {
             _impl.construct_value_from_variant(mov(that._impl));
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # move constructor template
+        /// # template move constructor
         /// ----------------------------------------------------------------------------------------
         template <typename... tothers>
         constexpr variant(variant<tothers...>&& that)
-            requires(types::template has<tothers...>) and (rmove_constructible_all<tothers...>)
+            requires(rmove_constructible_all<tothers...>) and (types::template has<tothers...>)
         {
             _impl.construct_value_from_variant(mov(that._impl));
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # trivial move assignment operator
+        /// # trivial move operator
         /// ----------------------------------------------------------------------------------------
-        constexpr auto operator=(variant&& that) -> variant& = default;
+        constexpr variant& operator=(variant&& that) = default;
 
         /// ----------------------------------------------------------------------------------------
-        /// # move assignment operator
+        /// # move operator
         /// ----------------------------------------------------------------------------------------
-        constexpr auto operator=(variant&& that) -> variant&
-            requires(rmove_constructible_all<ts...>) and (rmove_assignable_all<ts...>)
-                    and (not rtrivially_move_constructible_all<ts...>)
-                    and (not rtrivially_move_assignable_all<ts...>)
+        constexpr variant& operator=(variant&& that)
+            requires(rmoveable_all<types...>) and (not rtrivially_move_assignable_all<types...>)
         {
             _impl.set_value_from_variant(mov(that._impl));
             return *this;
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// # move assignment operator template
+        /// # template move operator
         /// ----------------------------------------------------------------------------------------
         template <typename... tothers>
-        constexpr auto operator=(variant<tothers...>&& that) -> variant&
-            requires(types::template has<tothers...>) and (rmove_constructible_all<ts...>)
-                    and (rmove_assignable_all<ts...>)
+        constexpr variant& operator=(variant<tothers...>&& that)
+            requires(rmoveable_all<types...>) and (types::template has<tothers...>)
         {
             _impl.set_value_from_variant(mov(that._impl));
             return *this;
@@ -228,7 +233,7 @@ namespace atom
         /// - `value`: value to assign.
         /// ----------------------------------------------------------------------------------------
         template <typename type>
-        constexpr auto operator=(const type& value) -> variant&
+        constexpr variant& operator=(const type& value)
             requires(has<type>())
         {
             _impl.set_value(value);
@@ -244,7 +249,7 @@ namespace atom
         /// - `value`: value to assign.
         /// ----------------------------------------------------------------------------------------
         template <typename type>
-        constexpr auto operator=(type&& value) -> variant&
+        constexpr variant& operator=(type&& value)
             requires(has<type>())
         {
             _impl.set_value(mov(value));
@@ -262,7 +267,7 @@ namespace atom
         /// destructs value.
         /// ----------------------------------------------------------------------------------------
         constexpr ~variant()
-            requires(not rtrivially_destructible_all<ts...>)
+            requires(not rtrivially_destructible_all<types...>)
         {
             _impl.destroy_value();
         }
@@ -272,26 +277,26 @@ namespace atom
         /// constructs the type `type` and sets the value.
         ///
         /// # see also
-        /// - [`tat`]
+        /// - [`type_at`]
         /// ----------------------------------------------------------------------------------------
-        template <typename type, typename... arg_types>
-        constexpr auto emplace(arg_types&&... args)
-            requires(has<type>()) and (rconstructible<type, arg_types...>)
+        template <typename type, typename... targs>
+        constexpr auto emplace(targs&&... args)
+            requires(has<type>()) and (rconstructible<type, targs...>)
         {
-            _impl.template emplace_value_by_type<type>(forward<arg_types>(args)...);
+            _impl.template emplace_value_by_type<type>(forward<targs>(args)...);
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// constructs the type for index `i` and sets the value.
+        /// constructs the type for index `index` and sets the value.
         ///
         /// # see also
-        /// - [`tat`]
+        /// - [`type_at`]
         /// ----------------------------------------------------------------------------------------
-        template <usize i, typename... arg_types>
-        constexpr auto emplace(arg_types&&... args)
-            requires(has<i>()) and (rconstructible<tat<i>, arg_types...>)
+        template <usize index, typename... targs>
+        constexpr auto emplace(targs&&... args)
+            requires(has<index>()) and (rconstructible<type_at<index>, targs...>)
         {
-            _impl.template emplace_value_by_index<i>(forward<arg_types>(args)...);
+            _impl.template emplace_value_by_index<index>(forward<targs>(args)...);
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -300,11 +305,24 @@ namespace atom
         /// # parameters
         /// - `value`: value to set.
         /// ----------------------------------------------------------------------------------------
-        template <typename tfwd, typename type = tti::tremove_quailfiers_ref<tfwd>>
-        constexpr auto set(tfwd&& value)
-            requires(has<type>()) and (rconstructible<type, tfwd>)
+        template <typename type>
+        constexpr auto set(const type&& value)
+            requires(has<type>()) and (rcopy_constructible<type>)
         {
-            _impl.set_value(forward<tfwd>(value));
+            _impl.set_value(value);
+        }
+
+        /// ----------------------------------------------------------------------------------------
+        /// sets the value to `value`.
+        ///
+        /// # parameters
+        /// - `value`: value to set.
+        /// ----------------------------------------------------------------------------------------
+        template <typename type>
+        constexpr auto set(type&& value)
+            requires(has<type>()) and (rmove_constructible<type>)
+        {
+            _impl.set_value(mov(value));
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -315,7 +333,7 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename type>
         constexpr auto as() const -> const type&
-            requires(has<type>())
+            requires(has<type>()) and (not ris_void<type>)
         {
             contracts::expects(is<type>(), "access to invalid type.");
 
@@ -330,7 +348,19 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename type>
         constexpr auto as() -> type&
-            requires(has<type>())
+            requires(has<type>()) and (not ris_void<type>)
+        {
+            contracts::debug_expects(is<type>(), "access to invalid type.");
+
+            return _impl.template get_value_by_type<type>();
+        }
+
+        /// ----------------------------------------------------------------------------------------
+        ///
+        /// ----------------------------------------------------------------------------------------
+        template <typename type>
+        constexpr auto as_check() const -> const type&
+            requires(has<type>()) and (not ris_void<type>)
         {
             contracts::expects(is<type>(), "access to invalid type.");
 
@@ -338,39 +368,75 @@ namespace atom
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// access the value at index `i`.
         ///
-        /// # template parameters
-        /// - `i`: index of type to access variants value as.
-        ///
-        /// # see also
-        /// - [`tat`]
         /// ----------------------------------------------------------------------------------------
-        template <usize i>
-        constexpr auto at() const -> const tat<i>&
-            requires(has<i>())
+        template <typename type>
+        constexpr auto as_check() -> type&
+            requires(has<type>()) and (not ris_void<type>)
         {
-            contracts::expects(is<i>(), "access to invalid type by index.");
+            contracts::expects(is<type>(), "access to invalid type.");
 
-            return _impl.template get_value_by_index<i>();
+            return _impl.template get_value_by_type<type>();
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// access the value at index `i`.
+        /// access the value at index `index`.
         ///
         /// # template parameters
-        /// - `i`: index of type to access variants value as.
+        /// - `index`: index of type to access variants value as.
         ///
         /// # see also
-        /// - [`tat`]
+        /// - [`type_at`]
         /// ----------------------------------------------------------------------------------------
-        template <usize i>
-        constexpr auto at() -> tat<i>&
-            requires(has<i>())
+        template <usize index>
+        constexpr auto at() const -> const type_at<index>&
+            requires(has<index>()) and (not ris_void<type_at<index>>)
         {
-            contracts::expects(is<i>(), "access to invalid type by index.");
+            contracts::expects(is<index>(), "access to invalid type by index.");
 
-            return _impl.template get_value_by_index<i>();
+            return _impl.template get_value_by_index<index>();
+        }
+
+        /// ----------------------------------------------------------------------------------------
+        /// access the value at index `index`.
+        ///
+        /// # template parameters
+        /// - `index`: index of type to access variants value as.
+        ///
+        /// # see also
+        /// - [`type_at`]
+        /// ----------------------------------------------------------------------------------------
+        template <usize index>
+        constexpr auto at() -> type_at<index>&
+            requires(has<index>()) and (not ris_void<type_at<index>>)
+        {
+            contracts::debug_expects(is<index>(), "access to invalid type by index.");
+
+            return _impl.template get_value_by_index<index>();
+        }
+
+        /// ----------------------------------------------------------------------------------------
+        ///
+        /// ----------------------------------------------------------------------------------------
+        template <usize index>
+        constexpr auto at_check() const -> const type_at<index>&
+            requires(has<index>()) and (not ris_void<type_at<index>>)
+        {
+            contracts::expects(is<index>(), "access to invalid type by index.");
+
+            return _impl.template get_value_by_index<index>();
+        }
+
+        /// ----------------------------------------------------------------------------------------
+        ///
+        /// ----------------------------------------------------------------------------------------
+        template <usize index>
+        constexpr auto at_check() -> type_at<index>&
+            requires(has<index>()) and (not ris_void<type_at<index>>)
+        {
+            contracts::expects(is<index>(), "access to invalid type by index.");
+
+            return _impl.template get_value_by_index<index>();
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -384,16 +450,16 @@ namespace atom
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// checks if current value is of type accessed by index `i`.
+        /// checks if current value is of type accessed by index `index`.
         ///
         /// # see also
-        /// - [`tat`]
+        /// - [`type_at`]
         /// ----------------------------------------------------------------------------------------
-        template <usize i>
+        template <usize index>
         constexpr auto is() const -> bool
-            requires(has<i>())
+            requires(has<index>())
         {
-            return _impl.template is_index<i>();
+            return _impl.template is_index<index>();
         }
 
         /// ----------------------------------------------------------------------------------------
