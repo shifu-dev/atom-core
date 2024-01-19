@@ -51,7 +51,7 @@ namespace atom
         class count
         {
         public:
-            static constexpr usize value = _sizeof<types>()...;
+            static constexpr usize value = sizeof...(types);
         };
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,7 +67,7 @@ namespace atom
         class max_size<max, in_type, types...>
         {
         private:
-            static constexpr usize _this_size = _sizeof(in_type);
+            static constexpr usize _this_size = _sizeof<in_type>();
 
         public:
             static constexpr usize value =
@@ -97,7 +97,7 @@ namespace atom
         class min_size<min, in_type, types...>
         {
         private:
-            static constexpr usize _this_size = _alignof(in_type);
+            static constexpr usize _this_size = _alignof<in_type>();
 
         public:
             static constexpr usize value =
@@ -127,7 +127,7 @@ namespace atom
         class max_align<max, in_type, types...>
         {
         private:
-            static constexpr usize _this_align = _alignof(in_type);
+            static constexpr usize _this_align = _alignof<in_type>();
 
         public:
             static constexpr usize value =
@@ -157,7 +157,7 @@ namespace atom
         class min_align<min, in_type, types...>
         {
         private:
-            static constexpr usize _this_align = _sizeof(in_type);
+            static constexpr usize _this_align = _sizeof<in_type>();
 
         public:
             static constexpr usize value =

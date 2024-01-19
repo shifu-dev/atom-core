@@ -51,10 +51,10 @@ namespace atom
             return _type_list::template has<type>;
         }
 
-        template <usize index>
+        template <usize i>
         static consteval auto has_index() -> bool
         {
-            return index < _type_list::count;
+            return i < _type_list::count;
         }
 
         template <typename type>
@@ -68,12 +68,12 @@ namespace atom
             return -1;
         }
 
-        template <usize index>
-        using type_at_index = typename _type_list::template at<index>;
+        template <usize i>
+        using type_at_index = typename _type_list::template at<i>;
 
-        using tfirst = type_at_index<0>;
+        using first_type = type_at_index<0>;
 
-        using tlast = type_at_index<get_type_count() - 1>;
+        using last_type = type_at_index<get_type_count() - 1>;
 
     public:
         /// ----------------------------------------------------------------------------------------
@@ -126,15 +126,15 @@ namespace atom
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// constructs value of type at index `index` with args `args`.
+        /// constructs value of type at index `i` with args `args`.
         ///
         /// # expects
         /// - current value is null.
         /// ----------------------------------------------------------------------------------------
-        template <usize index, typename... arg_types>
+        template <usize i, typename... arg_types>
         constexpr auto construct_value_by_index(arg_types&&... args)
         {
-            construct_value_by_type<type_at_index<index>>(forward<arg_types>(args)...);
+            construct_value_by_type<type_at_index<i>>(forward<arg_types>(args)...);
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -153,15 +153,15 @@ namespace atom
         }
 
         /// ----------------------------------------------------------------------------------------
-        /// constructs value of type at index `index` with args `args`.
+        /// constructs value of type at index `i` with args `args`.
         ///
         /// # expects
         /// - current value is null.
         /// ----------------------------------------------------------------------------------------
-        template <usize index, typename... arg_types>
+        template <usize i, typename... arg_types>
         constexpr auto emplace_value_by_index(arg_types&&... args)
         {
-            emplace_value_by_type<type_at_index<index>>(forward<arg_types>(args)...);
+            emplace_value_by_type<type_at_index<i>>(forward<arg_types>(args)...);
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -203,16 +203,16 @@ namespace atom
             return _get_value_as<type>();
         }
 
-        template <usize index>
-        constexpr auto get_value_by_index() const -> const type_at_index<index>&
+        template <usize i>
+        constexpr auto get_value_by_index() const -> const type_at_index<i>&
         {
-            return get_value_by_type<type_at_index<index>>();
+            return get_value_by_type<type_at_index<i>>();
         }
 
-        template <usize index>
-        constexpr auto get_value_by_index() -> type_at_index<index>&
+        template <usize i>
+        constexpr auto get_value_by_index() -> type_at_index<i>&
         {
-            return get_value_by_type<type_at_index<index>>();
+            return get_value_by_type<type_at_index<i>>();
         }
 
         template <typename type>
@@ -221,10 +221,10 @@ namespace atom
             return get_index_for_type<type>() == get_type_index();
         }
 
-        template <usize index>
+        template <usize i>
         constexpr auto is_index() const -> bool
         {
-            return index == get_type_index();
+            return i == get_type_index();
         }
 
         constexpr auto get_type_index() const -> usize
@@ -319,21 +319,21 @@ namespace atom
             }
         }
 
-        template <usize index, typename type, typename... in_other_types>
-        constexpr auto _destroy_value_impl(usize index)
+        template <usize index, typename type, typename... other_types>
+        constexpr auto _destroy_value_impl(usize i)
         {
-            using types = type_list<in_other_types...>;
+            using _type_list = type_list<other_types...>;
 
-            if (index != index)
+            if (i != index)
             {
-                if constexpr (types::count == 0)
+                if constexpr (_type_list::count == 0)
                 {
                     system::panic("there is no type for current index.");
                 }
                 else
                 {
-                    // recursion to find type at index index.
-                    _destroy_value_impl<index + 1, in_other_types...>(index);
+                    // recursion to find type at index i.
+                    _destroy_value_impl<index + 1, other_types...>(i);
                     return;
                 }
             }
@@ -375,17 +375,17 @@ namespace atom
         template <typename type>
         constexpr auto _get_data_as() -> mut_mem_ptr<type>
         {
-            return _storage_type.get_data();
+            return _storage.get_data();
         }
 
         template <typename type>
         constexpr auto _get_data_as() const -> mem_ptr<type>
         {
-            return _storage_type.get_data();
+            return _storage.get_data();
         }
 
     private:
-        _storage_type _storage_type;
+        _storage_type _storage;
         usize _index = 0;
     };
 }

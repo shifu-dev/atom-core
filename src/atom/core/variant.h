@@ -26,7 +26,7 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         /// type_list of this variant.
         /// ----------------------------------------------------------------------------------------
-        using types = type_list<types...>;
+        using type_list = type_list<types...>;
 
     public:
         /// ----------------------------------------------------------------------------------------
@@ -112,7 +112,7 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename... tothers>
         constexpr variant(const variant<tothers...>& that)
-            requires(rcopy_constructible_all<tothers...>) and (types::template has<tothers...>)
+            requires(rcopy_constructible_all<tothers...>) and (type_list::template has<tothers...>)
         {
             _impl.construct_value_from_variant(that._impl);
         }
@@ -137,7 +137,7 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename... tothers>
         constexpr variant& operator=(const variant<tothers...>& that)
-            requires(rcopyable_all<tothers...>) and (types::template has<tothers...>)
+            requires(rcopyable_all<tothers...>) and (type_list::template has<tothers...>)
         {
             _impl.set_value_from_variant(that._impl);
             return *this;
@@ -163,7 +163,7 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename... tothers>
         constexpr variant(variant<tothers...>&& that)
-            requires(rmove_constructible_all<tothers...>) and (types::template has<tothers...>)
+            requires(rmove_constructible_all<tothers...>) and (type_list::template has<tothers...>)
         {
             _impl.construct_value_from_variant(mov(that._impl));
         }
@@ -188,7 +188,7 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename... tothers>
         constexpr variant& operator=(variant<tothers...>&& that)
-            requires(rmoveable_all<types...>) and (types::template has<tothers...>)
+            requires(rmoveable_all<types...>) and (type_list::template has<tothers...>)
         {
             _impl.set_value_from_variant(mov(that._impl));
             return *this;
