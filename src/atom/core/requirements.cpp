@@ -1,18 +1,10 @@
-#pragma once
-#include "atom/core/lang_extensions.h"
-
-// #include <concepts>
-// #include <type_traits>
+export module atom.core:requirements;
+import :std;
+import :core;
 
 // clang-format off
-namespace atom
+export namespace atom
 {
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    ////
-    //// basic concepts
-    ////
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-
     /// --------------------------------------------------------------------------------------------
     /// ensures `type0` is same as `type1`.
     /// --------------------------------------------------------------------------------------------
@@ -79,12 +71,6 @@ namespace atom
     /// --------------------------------------------------------------------------------------------
     template <typename derived_type, typename base_type>
     concept rsame_or_derived_from = rsame_as<derived_type, base_type> || rderived_from<derived_type, base_type>;
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    ////
-    //// object concepts
-    ////
-    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// --------------------------------------------------------------------------------------------
     /// ensures `type` is `constructible` using `args...`.
@@ -346,12 +332,6 @@ namespace atom
     template <typename... ts>
     concept rtrivially_destructible_all = (rtrivially_destructible<ts> and ...);
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    ////
-    //// comparision concepts.
-    ////
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-
     /// --------------------------------------------------------------------------------------------
     /// ensures `type0` and `type1` are `equality_comparable`.
     /// --------------------------------------------------------------------------------------------
@@ -424,12 +404,6 @@ namespace atom
     template <typename type>
     concept rpure = not std::is_const_v<type> and not std::is_volatile_v<type> and not std::is_reference_v<type>;
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    ////
-    //// type concepts
-    ////
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-
     /// --------------------------------------------------------------------------------------------
     /// ensures `type` is {semi_regular}.
     /// --------------------------------------------------------------------------------------------
@@ -443,7 +417,9 @@ namespace atom
     concept regular = rsemi_regular<type> && requality_comparable<type>;
 }
 
-namespace atom
+// clang-format on
+
+export namespace atom
 {
     template <typename type0, typename type1>
     constexpr auto operator==(const type0& v0, const type1& v1) -> bool
@@ -482,7 +458,7 @@ namespace atom
 
     template <typename type0, typename type1>
     constexpr auto operator>=(const type0& v0, const type1& v1) -> bool
-    
+
         requires rcomparable_with<type0, type1>
     {
         return v0.ge(v1);
