@@ -1,6 +1,6 @@
 export module atom.core:requirements;
 import :std;
-import :core;
+import :core.core;
 
 // clang-format off
 export namespace atom
@@ -78,7 +78,10 @@ export namespace atom
     /// ensures `type` is `constructible` using `args...`.
     /// --------------------------------------------------------------------------------------------
     template <typename type, typename... arg_types>
-    concept rconstructible = requires(arg_types&&... args) { type(forward<arg_types>(args)...); };
+    concept rconstructible = requires(arg_types&&... args)
+    {
+        type(forward<arg_types>(args)...);
+    };
 
     /// --------------------------------------------------------------------------------------------
     /// ensures `type` is `trivially_constructible` using `args...`.
@@ -423,7 +426,6 @@ export namespace atom
     template <class type>
     concept regular = rsemi_regular<type> && requality_comparable<type>;
 }
-
 // clang-format on
 
 export namespace atom
