@@ -173,7 +173,7 @@ TEST_CASE("atom.core.variant")
     SECTION("move constructor")
     {
         variant<tracked_i32, tracked_f32, tracked_uchar> v0 = tracked_f32{};
-        variant<tracked_i32, tracked_f32, tracked_uchar> v1 = mov(v0);
+        variant<tracked_i32, tracked_f32, tracked_uchar> v1 = move(v0);
 
         REQUIRE(v0.index() == 1);
         REQUIRE(v0.is<tracked_f32>());
@@ -187,7 +187,7 @@ TEST_CASE("atom.core.variant")
     SECTION("move constructor template")
     {
         variant<tracked_f32, tracked_uchar> v0 = tracked_f32{};
-        variant<tracked_i32, tracked_f32, tracked_uchar> v1 = mov(v0);
+        variant<tracked_i32, tracked_f32, tracked_uchar> v1 = move(v0);
 
         REQUIRE(v0.index() == 0);
         REQUIRE(v0.is<tracked_f32>());
@@ -209,7 +209,7 @@ TEST_CASE("atom.core.variant")
 
         // v1 holds tracked_i32, so it will construct tracked_f32 when assigned
         variant<tracked_i32, tracked_f32, tracked_uchar> v1;
-        v1 = mov(v0);
+        v1 = move(v0);
 
         REQUIRE(v0.index() == 1);
         REQUIRE(v0.is<tracked_f32>());
@@ -220,7 +220,7 @@ TEST_CASE("atom.core.variant")
         REQUIRE(v1.as<tracked_f32>().last_op == tracked_type::eoperation::move_constructor);
 
         // v1 holds tracked_f32, so it will assign tracked_f32 when now
-        v1 = mov(v0);
+        v1 = move(v0);
 
         REQUIRE(v0.index() == 1);
         REQUIRE(v0.is<tracked_f32>());
@@ -237,7 +237,7 @@ TEST_CASE("atom.core.variant")
 
         // v1 holds tracked_i32, so it will construct tracked_f32 when assigned
         variant<tracked_i32, tracked_f32, tracked_uchar> v1;
-        v1 = mov(v0);
+        v1 = move(v0);
 
         REQUIRE(v0.index() == 0);
         REQUIRE(v0.is<tracked_f32>());
@@ -248,7 +248,7 @@ TEST_CASE("atom.core.variant")
         REQUIRE(v1.as<tracked_f32>().last_op == tracked_type::eoperation::move_constructor);
 
         // v1 holds tracked_f32, so it will assign tracked_f32 when now
-        v1 = mov(v0);
+        v1 = move(v0);
 
         REQUIRE(v0.index() == 0);
         REQUIRE(v0.is<tracked_f32>());

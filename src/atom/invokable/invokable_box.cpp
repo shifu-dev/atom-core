@@ -150,7 +150,7 @@ namespace atom
         ///
         /// ----------------------------------------------------------------------------------------
         invokable_box(invokable_box&& other)
-            : _box(mov(other._box))
+            : _box(move(other._box))
         {}
 
         /// ----------------------------------------------------------------------------------------
@@ -158,7 +158,7 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         auto operator=(invokable_box&& other) -> invokable_box&
         {
-            _box = mov(other._box);
+            _box = move(other._box);
             return *this;
         }
 
