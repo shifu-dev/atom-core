@@ -599,7 +599,8 @@ export namespace atom
         /// copy constructs variant with value of type type.
         ///
         /// # parameters
-        /// - `value`: value to construct with.
+        ///
+        ///  - `value`: value to construct with.
         /// ----------------------------------------------------------------------------------------
         template <typename type>
         constexpr variant(const type& value)
@@ -614,7 +615,8 @@ export namespace atom
         /// move constructs variant with value of type type.
         ///
         /// # parameters
-        /// - `value`: value to construct with.
+        ///
+        ///  - `value`: value to construct with.
         /// ----------------------------------------------------------------------------------------
         template <typename type>
         constexpr variant(type&& value)
@@ -629,7 +631,8 @@ export namespace atom
         /// destroys previous value assigns new value.
         ///
         /// # parameters
-        /// - `value`: value to assign.
+        ///
+        ///  - `value`: value to assign.
         /// ----------------------------------------------------------------------------------------
         template <typename type>
         constexpr variant& operator=(const type& value)
@@ -645,7 +648,8 @@ export namespace atom
         /// destroys previous value assigns new value.
         ///
         /// # parameters
-        /// - `value`: value to assign.
+        ///
+        ///  - `value`: value to assign.
         /// ----------------------------------------------------------------------------------------
         template <typename type>
         constexpr variant& operator=(type&& value)
@@ -676,6 +680,7 @@ export namespace atom
         /// constructs the type `type` and sets the value.
         ///
         /// # see also
+        ///
         /// - [`type_at`]
         /// ----------------------------------------------------------------------------------------
         template <typename type, typename... arg_types>
@@ -689,6 +694,7 @@ export namespace atom
         /// constructs the type for index `index` and sets the value.
         ///
         /// # see also
+        ///
         /// - [`type_at`]
         /// ----------------------------------------------------------------------------------------
         template <usize index, typename... arg_types>
@@ -702,7 +708,8 @@ export namespace atom
         /// sets the value to `value`.
         ///
         /// # parameters
-        /// - `value`: value to set.
+        ///
+        ///  - `value`: value to set.
         /// ----------------------------------------------------------------------------------------
         template <typename type>
         constexpr auto set(const type&& value)
@@ -715,7 +722,8 @@ export namespace atom
         /// sets the value to `value`.
         ///
         /// # parameters
-        /// - `value`: value to set.
+        ///
+        ///  - `value`: value to set.
         /// ----------------------------------------------------------------------------------------
         template <typename type>
         constexpr auto set(type&& value)
@@ -728,7 +736,8 @@ export namespace atom
         /// access the value as type `type`.
         ///
         /// # template parameters
-        /// - `type`: type to access variant's value as.
+        ///
+        ///  - `type`: type to access variant's value as.
         /// ----------------------------------------------------------------------------------------
         template <typename type>
         constexpr auto as() const -> const type&
@@ -743,7 +752,8 @@ export namespace atom
         /// access the value as type `type`.
         ///
         /// # template parameters
-        /// - `type`: type to access variant's value as.
+        ///
+        ///  - `type`: type to access variant's value as.
         /// ----------------------------------------------------------------------------------------
         template <typename type>
         constexpr auto as() -> type&
@@ -782,9 +792,11 @@ export namespace atom
         /// access the value at index `index`.
         ///
         /// # template parameters
-        /// - `index`: index of type to access variants value as.
+        ///
+        ///  - `index`: index of type to access variants value as.
         ///
         /// # see also
+        ///
         /// - [`type_at`]
         /// ----------------------------------------------------------------------------------------
         template <usize index>
@@ -800,9 +812,11 @@ export namespace atom
         /// access the value at index `index`.
         ///
         /// # template parameters
-        /// - `index`: index of type to access variants value as.
+        ///
+        ///  - `index`: index of type to access variants value as.
         ///
         /// # see also
+        ///
         /// - [`type_at`]
         /// ----------------------------------------------------------------------------------------
         template <usize index>
@@ -852,6 +866,7 @@ export namespace atom
         /// checks if current value is of type accessed by index `index`.
         ///
         /// # see also
+        ///
         /// - [`type_at`]
         /// ----------------------------------------------------------------------------------------
         template <usize index>
