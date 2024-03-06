@@ -192,7 +192,7 @@ namespace atom
         template <typename type>
         constexpr auto get_value_by_type() const -> const type&
         {
-            contracts::debug_expects(get_index_for_type<type>() == get_type_index(),
+            ATOM_DEBUG_EXPECTS(get_index_for_type<type>() == get_type_index(),
                 "current type is not same as requested type.");
 
             return _get_value_as<type>();
@@ -201,7 +201,7 @@ namespace atom
         template <typename type>
         constexpr auto get_value_by_type() -> type&
         {
-            contracts::debug_expects(get_index_for_type<type>() == get_type_index(),
+            ATOM_DEBUG_EXPECTS(get_index_for_type<type>() == get_type_index(),
                 "current type is not same as requested type.");
 
             return _get_value_as<type>();
@@ -251,7 +251,7 @@ namespace atom
             {
                 if constexpr (that_types::count == 0)
                 {
-                    panic("there is no type for current index.");
+                    ATOM_PANIC("there is no type for current index.");
                 }
                 else
                 {
@@ -282,7 +282,7 @@ namespace atom
             {
                 if constexpr (that_types::count == 0)
                 {
-                    panic("there is no type for current index.");
+                    ATOM_PANIC("there is no type for current index.");
                 }
                 else
                 {
@@ -333,7 +333,7 @@ namespace atom
             {
                 if constexpr (_type_list::count == 0)
                 {
-                    panic("there is no type for current index.");
+                    ATOM_PANIC("there is no type for current index.");
                 }
                 else
                 {
@@ -408,8 +408,8 @@ namespace atom
     template <typename... types>
     class variant
     {
-        static_assert(type_list<types...>::are_unique, "every type in types... should be unique.");
-        static_assert(type_list<types...>::count > 0, "at least one type needs to be specified.");
+        ATOM_STATIC_ASSERTS(type_list<types...>::are_unique, "every type in types... should be unique.");
+        ATOM_STATIC_ASSERTS(type_list<types...>::count > 0, "at least one type needs to be specified.");
 
     private:
         using this_type = variant<types...>;
@@ -742,7 +742,7 @@ namespace atom
         constexpr auto as() const -> const type&
             requires(has<type>()) and (not ris_void<type>)
         {
-            contracts::expects(is<type>(), "access to invalid type.");
+            ATOM_EXPECTS(is<type>(), "access to invalid type.");
 
             return _impl.template get_value_by_type<type>();
         }
@@ -758,7 +758,7 @@ namespace atom
         constexpr auto as() -> type&
             requires(has<type>()) and (not ris_void<type>)
         {
-            contracts::debug_expects(is<type>(), "access to invalid type.");
+            ATOM_DEBUG_EXPECTS(is<type>(), "access to invalid type.");
 
             return _impl.template get_value_by_type<type>();
         }
@@ -770,7 +770,7 @@ namespace atom
         constexpr auto as_check() const -> const type&
             requires(has<type>()) and (not ris_void<type>)
         {
-            contracts::expects(is<type>(), "access to invalid type.");
+            ATOM_EXPECTS(is<type>(), "access to invalid type.");
 
             return _impl.template get_value_by_type<type>();
         }
@@ -782,7 +782,7 @@ namespace atom
         constexpr auto as_check() -> type&
             requires(has<type>()) and (not ris_void<type>)
         {
-            contracts::expects(is<type>(), "access to invalid type.");
+            ATOM_EXPECTS(is<type>(), "access to invalid type.");
 
             return _impl.template get_value_by_type<type>();
         }
@@ -802,7 +802,7 @@ namespace atom
         constexpr auto get_at() const -> const type_at<index>&
             requires(has<index>()) and (not ris_void<type_at<index>>)
         {
-            contracts::expects(is<index>(), "access to invalid type by index.");
+            ATOM_EXPECTS(is<index>(), "access to invalid type by index.");
 
             return _impl.template get_value_by_index<index>();
         }
@@ -822,7 +822,7 @@ namespace atom
         constexpr auto get_at() -> type_at<index>&
             requires(has<index>()) and (not ris_void<type_at<index>>)
         {
-            contracts::debug_expects(is<index>(), "access to invalid type by index.");
+            ATOM_DEBUG_EXPECTS(is<index>(), "access to invalid type by index.");
 
             return _impl.template get_value_by_index<index>();
         }
@@ -834,7 +834,7 @@ namespace atom
         constexpr auto at_check() const -> const type_at<index>&
             requires(has<index>()) and (not ris_void<type_at<index>>)
         {
-            contracts::expects(is<index>(), "access to invalid type by index.");
+            ATOM_EXPECTS(is<index>(), "access to invalid type by index.");
 
             return _impl.template get_value_by_index<index>();
         }
@@ -846,7 +846,7 @@ namespace atom
         constexpr auto at_check() -> type_at<index>&
             requires(has<index>()) and (not ris_void<type_at<index>>)
         {
-            contracts::expects(is<index>(), "access to invalid type by index.");
+            ATOM_EXPECTS(is<index>(), "access to invalid type by index.");
 
             return _impl.template get_value_by_index<index>();
         }
