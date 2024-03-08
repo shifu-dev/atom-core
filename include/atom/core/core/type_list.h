@@ -1,6 +1,6 @@
 #pragma once
 #include "atom/core/core.h"
-#include "atom/core/tti.h"
+#include "atom/core/typeinfo.h"
 #include "atom/core/math.h"
 
 namespace atom
@@ -19,7 +19,7 @@ namespace atom
         template <typename type>
         consteval auto _sizeof() -> usize
         {
-            if constexpr (tti::is_same<type, void>)
+            if constexpr (typeinfo::is_same<type, void>)
             {
                 return 0;
             }
@@ -32,7 +32,7 @@ namespace atom
         template <typename type>
         consteval auto _alignof() -> usize
         {
-            if constexpr (tti::is_same<type, void>)
+            if constexpr (typeinfo::is_same<type, void>)
             {
                 return 0;
             }
@@ -188,7 +188,7 @@ namespace atom
         class at<index_to_get, index, in_type, types...>
         {
         public:
-            using type = tti::conditional_type<index_to_get == index, in_type,
+            using type = typeinfo::conditional_type<index_to_get == index, in_type,
                 typename at<index_to_get, index + 1, types...>::type>;
         };
 
@@ -290,7 +290,7 @@ namespace atom
         class remove_if<predicate_type, in_type, types...>
         {
         public:
-            using type = tti::conditional_type<predicate_type<in_type>::value,
+            using type = typeinfo::conditional_type<predicate_type<in_type>::value,
                 typename add_first<in_type,
                     typename remove_if<predicate_type, types...>::in_type>::type,
                 typename remove_if<predicate_type, types...>::type>;
@@ -398,7 +398,7 @@ namespace atom
         class replace_all<replace_type, with_type, in_type, types...>
         {
             using final_type =
-                tti::conditional_type<tti::is_same<replace_type, in_type>, with_type, in_type>;
+                typeinfo::conditional_type<typeinfo::is_same<replace_type, in_type>, with_type, in_type>;
 
         public:
             using type = typename add_first<final_type,
