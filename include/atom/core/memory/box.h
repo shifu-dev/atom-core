@@ -349,18 +349,16 @@ namespace atom
 
             if constexpr (is_copyable())
             {
-                _val.copy = [](void* val, const void* that) {
-                    new (val) type(*reinterpret_cast<const type*>(that));
-                };
+                _val.copy = [](void* val, const void* that)
+                { new (val) type(*reinterpret_cast<const type*>(that)); };
             }
 
             if constexpr (is_movable())
             {
                 if constexpr (is_move_constructible<type>)
                 {
-                    _val.move = [](void* val, void* that) {
-                        new (val) type(move(*reinterpret_cast<type*>(that)));
-                    };
+                    _val.move = [](void* val, void* that)
+                    { new (val) type(move(*reinterpret_cast<type*>(that))); };
                 }
                 else
                 {
@@ -877,7 +875,7 @@ namespace atom
     };
 
     template <typename in_impl_t>
-        requires(is_void<typename in_impl_t::value_t>)
+        requires typeinfo<typename in_impl_t::value_t>::is_void
     class box_functions<in_impl_t>
     {
     protected:
@@ -898,7 +896,7 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename type, typename... arg_ts>
         constexpr auto emplace(arg_ts&&... args) -> type&
-            requires(not is_void<type>)
+            requires(not typeinfo<type>::is_void)
         {
             _impl.template emplace_val<type>(forward<arg_ts>(args)...);
             return _impl.template get_mut_val_as<type>();
@@ -1006,21 +1004,23 @@ namespace atom
         ///
         /// ----------------------------------------------------------------------------------------
         template <typename type>
-        constexpr auto mem_as() const
-            -> const type* requires(not is_void<type>) { return _impl.template mem_as<type>(); }
+        constexpr auto mem_as() const -> const type* requires(not typeinfo<type>::is_void) {
+            return _impl.template mem_as<type>();
+        }
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
         template <typename type>
-        constexpr auto mut_mem_as()
-            -> const type* requires(not is_void<type>) { return _impl.template mut_mem_as<type>(); }
+        constexpr auto mut_mem_as() -> const type* requires(not typeinfo<type>::is_void) {
+            return _impl.template mut_mem_as<type>();
+        }
 
         /// ----------------------------------------------------------------------------------------
         ///
         /// ----------------------------------------------------------------------------------------
         template <typename type>
-        constexpr auto check_mem_as() const -> const void* requires(not is_void<type>) {
+        constexpr auto check_mem_as() const -> const void* requires(not typeinfo<type>::is_void) {
             expects(has_val(), "value is null.");
 
             return _impl.template get_mem_as<type>();
@@ -1030,7 +1030,7 @@ namespace atom
         ///
         /// ----------------------------------------------------------------------------------------
         template <typename type>
-        constexpr auto check_mut_mem_as() -> void* requires(not is_void<type>) {
+        constexpr auto check_mut_mem_as() -> void* requires(not typeinfo<type>::is_void) {
             expects(has_val(), "value is null.");
 
             return _impl.template get_mut_mem_as<type>();
@@ -1125,7 +1125,8 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename type, usize that_buf_size, typename that_allocator_t>
         constexpr box(const copy_box<type, that_buf_size, that_allocator_t>& that)
-            requires is_void<value_t> or is_same_or_derived_from<type, value_t>
+            requires typeinfo<value_t>::is_void
+                     or (typeinfo<type>::template is_same_or_derived_from<value_t>)
             : base_t(typename _impl_t::copy_tag(), that._impl)
         {}
 
@@ -1134,7 +1135,8 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename type, usize that_buf_size, typename that_allocator_t>
         constexpr this_t& operator=(const copy_box<type, that_buf_size, that_allocator_t>& that)
-            requires is_void<value_t> or is_same_or_derived_from<type, value_t>
+            requires typeinfo<value_t>::is_void
+                     or (typeinfo<type>::template is_same_or_derived_from<value_t>)
         {
             _impl.copy_box(that._impl);
             return *this;
@@ -1145,7 +1147,8 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename type, usize that_buf_size, typename that_allocator_t>
         constexpr box(const copy_move_box<type, true, that_buf_size, that_allocator_t>& that)
-            requires is_void<value_t> or is_same_or_derived_from<type, value_t>
+            requires typeinfo<value_t>::is_void
+                     or (typeinfo<type>::template is_same_or_derived_from<value_t>)
             : base_t(typename _impl_t::copy_tag(), that._impl)
         {}
 
@@ -1155,7 +1158,8 @@ namespace atom
         template <typename type, usize that_buf_size, typename that_allocator_t>
         constexpr this_t& operator=(
             const copy_move_box<type, true, that_buf_size, that_allocator_t>& that)
-            requires is_void<value_t> or is_same_or_derived_from<type, value_t>
+            requires typeinfo<value_t>::is_void
+                     or (typeinfo<type>::template is_same_or_derived_from<value_t>)
         {
             _impl.copy_box(that._impl);
             return *this;
@@ -1166,7 +1170,8 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename type, usize that_buf_size, typename that_allocator_t>
         constexpr box(move_box<type, true, that_buf_size, that_allocator_t>&& that)
-            requires is_void<value_t> or is_same_or_derived_from<type, value_t>
+            requires typeinfo<value_t>::is_void
+                     or (typeinfo<type>::template is_same_or_derived_from<value_t>)
             : base_t(typename _impl_t::move_tag(), that._impl)
         {}
 
@@ -1175,7 +1180,8 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename type, usize that_buf_size, typename that_allocator_t>
         constexpr this_t& operator=(move_box<type, true, that_buf_size, that_allocator_t>&& that)
-            requires(is_void<value_t>) or is_same_or_derived_from<type, value_t>
+            requires(typeinfo<value_t>::is_void)
+                    or (typeinfo<type>::template is_same_or_derived_from<value_t>)
         {
             _impl.move_box(that._impl);
             return *this;
@@ -1186,7 +1192,8 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename type, usize that_buf_size, typename that_allocator_t>
         constexpr box(copy_move_box<type, true, that_buf_size, that_allocator_t>&& that)
-            requires is_void<value_t> or is_same_or_derived_from<type, value_t>
+            requires typeinfo<value_t>::is_void
+                     or (typeinfo<type>::template is_same_or_derived_from<value_t>)
             : base_t(typename _impl_t::move_tag(), that._impl)
         {}
 
@@ -1196,7 +1203,8 @@ namespace atom
         template <typename type, usize that_buf_size, typename that_allocator_t>
         constexpr this_t& operator=(
             copy_move_box<type, true, that_buf_size, that_allocator_t>&& that)
-            requires is_void<value_t> or is_same_or_derived_from<type, value_t>
+            requires typeinfo<value_t>::is_void
+                     or (typeinfo<type>::template is_same_or_derived_from<value_t>)
         {
             _impl.move_box(that._impl);
             return *this;
@@ -1207,7 +1215,8 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename type, typename... arg_ts>
         constexpr box(type_holder<type> arg_t, arg_ts&&... args)
-            requires(is_void<value_t> or is_same_or_derived_from<type, value_t>)
+            requires(typeinfo<value_t>::is_void
+                        or (typeinfo<type>::template is_same_or_derived_from<value_t>))
                     and is_constructible<type, arg_ts...>
             : base_t(arg_t, forward<arg_ts>(args)...)
         {}
@@ -1217,7 +1226,8 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename type>
         constexpr box(type&& obj)
-            requires is_void<value_t> or is_same_or_derived_from<typename typeinfo<type>::pure_t::value_t, value_t>
+            requires typeinfo<value_t>::is_void
+                     or is_same_or_derived_from<typename typeinfo<type>::pure_t::value_t, value_t>
             : base_t(forward<type>(obj))
         {}
 
@@ -1226,7 +1236,8 @@ namespace atom
         /// ----------------------------------------------------------------------------------------
         template <typename type>
         constexpr this_t& operator=(type&& obj)
-            requires is_void<value_t> or is_same_or_derived_from<typename typeinfo<type>::pure_t::value_t, value_t>
+            requires typeinfo<value_t>::is_void
+                     or is_same_or_derived_from<typename typeinfo<type>::pure_t::value_t, value_t>
         {
             _impl.set_val(forward<type>(obj));
             return *this;
