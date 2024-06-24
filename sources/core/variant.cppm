@@ -308,7 +308,7 @@ namespace atom
             requires(should_enable_variant_constructor<that_type>())
             : _impl{ create_from_variant, that._impl }
         {
-            contract_asserts(index() != nums::get_max<usize>());
+            contract_asserts(index() != nums::get_max_usize());
         }
 
         /// ----------------------------------------------------------------------------------------
@@ -319,7 +319,7 @@ namespace atom
             requires(should_enable_variant_constructor<that_type>())
             : _impl{ create_from_variant, move(that._impl) }
         {
-            contract_asserts(index() != nums::get_max<usize>());
+            contract_asserts(index() != nums::get_max_usize());
         }
 
         /// ----------------------------------------------------------------------------------------
